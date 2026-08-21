@@ -19,6 +19,16 @@ function addDaysISO(fromISO, days) {
   return d.toISOString();
 }
 
+// Like addDaysISO, but accepts days + hours + minutes together, so keys
+// (and extensions) can be created for durations shorter than a full day.
+function addDurationISO(fromISO, { days = 0, hours = 0, minutes = 0 } = {}) {
+  const totalMs =
+    (Number(days) || 0) * 86400000 +
+    (Number(hours) || 0) * 3600000 +
+    (Number(minutes) || 0) * 60000;
+  return new Date(new Date(fromISO).getTime() + totalMs).toISOString();
+}
+
 function nowISO() {
   return new Date().toISOString();
 }
@@ -44,4 +54,4 @@ function asyncHandler(fn) {
   };
 }
 
-module.exports = { generateKeyString, generateResellerToken, addDaysISO, nowISO, daysLeft, computeStatus, asyncHandler };
+module.exports = { generateKeyString, generateResellerToken, addDaysISO, addDurationISO, nowISO, daysLeft, computeStatus, asyncHandler };
