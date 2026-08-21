@@ -1,15 +1,34 @@
 const express = require('express');
 const { db } = require('../db');
 const { computeStatus, daysLeft, nowISO } = require('../helpers');
+const {
+  licenseRateLimit,
+  recordInvalidKeyAttempt,
+  logActivity,
+  checkKeySharing,
+  getClientIp,
+} = require('../middleware/licenseSecurity');
+const { verifyRequestSignature } = require('../middleware/requestSignature');
 
 const router = express.Router();
+
+// Signature check runs first — it's cheap (no DB) and rejects forged
+// requests before they can burn rate-limit budget or touch the database.
+router.use(verifyRequestSignature);
+
+// Rate limiting / IP lockout applies to every route in this file.
+router.use(licenseRateLimit);
+
 // Called once from the app's activation screen when the user enters a key.
 router.post('/activate', async (req, res) => {
   console.log("========== ACTIVATE ==========");
-console.log("Headers:", req.headers);
-console.log("Body:", req.body);
-  
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
+
+  const ip = req.clientIp || getClientIp(req);
+  const userAgent = req.headers['user-agent'];
   const { license_key, hwid } = req.body || {};
+
   if (!license_key || !hwid) {
     return res.status(400).json({ success: false, reason: 'license_key and hwid required' });
   }
@@ -19,11 +38,22 @@ console.log("Body:", req.body);
     args: [license_key],
   });
   const lic = licResult.rows[0];
-  if (!lic) return res.status(404).json({ success: false, reason: 'invalid_key' });
+
+  if (!lic) {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'invalid_key', success: false });
+    await recordInvalidKeyAttempt(ip);
+    return res.status(404).json({ success: false, reason: 'invalid_key' });
+  }
 
   const status = computeStatus(lic);
-  if (status === 'revoked') return res.status(403).json({ success: false, reason: 'revoked' });
-  if (status === 'expired') return res.status(403).json({ success: false, reason: 'expired' });
+  if (status === 'revoked') {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'activate', success: false });
+    return res.status(403).json({ success: false, reason: 'revoked' });
+  }
+  if (status === 'expired') {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'activate', success: false });
+    return res.status(403).json({ success: false, reason: 'expired' });
+  }
 
   const boundResult = await db.execute({
     sql: 'SELECT hwid FROM license_devices WHERE license_key = ?',
@@ -31,6 +61,12 @@ console.log("Body:", req.body);
   });
   const boundDevices = boundResult.rows;
   const alreadyBound = boundDevices.some(d => d.hwid === hwid);
+
+  // Log + check sharing on every activation attempt (bound or not) — this
+  // is what actually catches "same key, many places" even when each
+  // caller resets their HWID to look new.
+  await logActivity({ license_key, hwid, ip, userAgent, action: 'activate', success: true });
+  await checkKeySharing(license_key, ip);
 
   if (alreadyBound) {
     return res.json({ success: true, expires_at: lic.expires_at, days_left: daysLeft(lic.expires_at) });
@@ -57,7 +93,10 @@ console.log("Body:", req.body);
 
 // Called on every app launch to confirm the key is still good.
 router.post('/validate', async (req, res) => {
+  const ip = req.clientIp || getClientIp(req);
+  const userAgent = req.headers['user-agent'];
   const { license_key, hwid } = req.body || {};
+
   if (!license_key || !hwid) {
     return res.json({ valid: false, reason: 'license_key and hwid required' });
   }
@@ -67,24 +106,45 @@ router.post('/validate', async (req, res) => {
     args: [license_key],
   });
   const lic = licResult.rows[0];
-  if (!lic) return res.json({ valid: false, reason: 'invalid_key' });
+
+  if (!lic) {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'invalid_key', success: false });
+    await recordInvalidKeyAttempt(ip);
+    return res.json({ valid: false, reason: 'invalid_key' });
+  }
 
   const status = computeStatus(lic);
-  if (status === 'revoked') return res.json({ valid: false, reason: 'revoked' });
-  if (status === 'expired') return res.json({ valid: false, reason: 'expired' });
+  if (status === 'revoked') {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'validate', success: false });
+    return res.json({ valid: false, reason: 'revoked' });
+  }
+  if (status === 'expired') {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'validate', success: false });
+    return res.json({ valid: false, reason: 'expired' });
+  }
 
   const boundResult = await db.execute({
     sql: 'SELECT 1 FROM license_devices WHERE license_key = ? AND hwid = ?',
     args: [license_key, hwid],
   });
-  if (boundResult.rows.length === 0) return res.json({ valid: false, reason: 'device_not_bound' });
+
+  if (boundResult.rows.length === 0) {
+    await logActivity({ license_key, hwid, ip, userAgent, action: 'validate', success: false });
+    return res.json({ valid: false, reason: 'device_not_bound' });
+  }
+
+  await logActivity({ license_key, hwid, ip, userAgent, action: 'validate', success: true });
+  await checkKeySharing(license_key, ip);
 
   res.json({ valid: true, expires_at: lic.expires_at, days_left: daysLeft(lic.expires_at) });
 });
 
 // Public status check — no hwid required, and never reveals any device IDs.
 router.post('/status', async (req, res) => {
+  const ip = req.clientIp || getClientIp(req);
+  const userAgent = req.headers['user-agent'];
   const { license_key } = req.body || {};
+
   if (!license_key) return res.json({ valid: false, reason: 'license_key_required' });
 
   const licResult = await db.execute({
@@ -92,7 +152,12 @@ router.post('/status', async (req, res) => {
     args: [license_key],
   });
   const lic = licResult.rows[0];
-  if (!lic) return res.json({ valid: false, reason: 'invalid_key' });
+
+  if (!lic) {
+    await logActivity({ license_key, ip, userAgent, action: 'invalid_key', success: false });
+    await recordInvalidKeyAttempt(ip);
+    return res.json({ valid: false, reason: 'invalid_key' });
+  }
 
   const status = computeStatus(lic);
   if (status === 'revoked') return res.json({ valid: false, reason: 'revoked' });
@@ -103,6 +168,8 @@ router.post('/status', async (req, res) => {
     args: [license_key],
   });
   const boundCount = Number(boundResult.rows[0]?.count || 0);
+
+  await logActivity({ license_key, ip, userAgent, action: 'status', success: true });
 
   res.json({
     valid: true,
