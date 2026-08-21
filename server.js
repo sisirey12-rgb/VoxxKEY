@@ -15,6 +15,7 @@ app.set('trust proxy', 1);
 
 const allowedOrigins = [
   'https://yorvoxxvip.netlify.app',
+  'https://yorvoxxvipwebscan.netlify.app',
   'https://voxxresellerdashboard.netlify.app',
 ];
 
