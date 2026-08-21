@@ -1,7 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireSession } = require('../middleware/authSession');
-const { generateKeyString, generateResellerToken, addDaysISO, nowISO, computeStatus, asyncHandler } = require('../helpers');
+const { generateKeyString, generateResellerToken, addDaysISO, addDurationISO, nowISO, computeStatus, asyncHandler } = require('../helpers');
 
 const router = express.Router();
 // Every key/reseller/topup route below now requires a live session token
@@ -28,11 +28,27 @@ router.get('/keys', asyncHandler(async (req, res) => {
 
 // Generate a new key
 router.post('/generate-key', asyncHandler(async (req, res) => {
-  const { validity_days = 30, max_devices = 1, label = null, custom_key, license_key: legacyKey } = req.body || {};
+  const {
+    validity_days,          // legacy field — still honored if sent, treated as "days"
+    days = 0,
+    hours = 0,
+    minutes = 0,
+    max_devices = 1,
+    label = null,
+    custom_key,
+    license_key: legacyKey,
+  } = req.body || {};
   const customKey = (custom_key || legacyKey || '').trim() || null;
 
-  if (!Number.isFinite(Number(validity_days)) || Number(validity_days) <= 0) {
-    return res.status(400).json({ error: 'validity_days must be a positive number' });
+  // If the old validity_days field is sent, fold it into days so nothing
+  // that already calls this route with the old shape breaks.
+  const totalDays = Number(validity_days ?? days) || 0;
+  const totalHours = Number(hours) || 0;
+  const totalMinutes = Number(minutes) || 0;
+  const totalMs = totalDays * 86400000 + totalHours * 3600000 + totalMinutes * 60000;
+
+  if (!Number.isFinite(totalMs) || totalMs <= 0) {
+    return res.status(400).json({ error: 'provide a positive duration via days, hours, and/or minutes' });
   }
   if (!Number.isFinite(Number(max_devices)) || Number(max_devices) <= 0) {
     return res.status(400).json({ error: 'max_devices must be a positive number' });
@@ -50,7 +66,7 @@ router.post('/generate-key', asyncHandler(async (req, res) => {
 
   const license_key = customKey || generateKeyString();
   const created_at = nowISO();
-  const expires_at = addDaysISO(created_at, validity_days);
+  const expires_at = addDurationISO(created_at, { days: totalDays, hours: totalHours, minutes: totalMinutes });
 
   await db.execute({
     sql: `
@@ -81,10 +97,18 @@ router.post('/reset-hwid', asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
-// Extend expiry by N days
+// Extend expiry by days/hours/minutes
 router.post('/extend', asyncHandler(async (req, res) => {
-  const { license_key, days } = req.body || {};
-  if (!license_key || !days) return res.status(400).json({ error: 'license_key and days required' });
+  const { license_key, days = 0, hours = 0, minutes = 0 } = req.body || {};
+  const totalDays = Number(days) || 0;
+  const totalHours = Number(hours) || 0;
+  const totalMinutes = Number(minutes) || 0;
+  const totalMs = totalDays * 86400000 + totalHours * 3600000 + totalMinutes * 60000;
+
+  if (!license_key) return res.status(400).json({ error: 'license_key required' });
+  if (!Number.isFinite(totalMs) || totalMs <= 0) {
+    return res.status(400).json({ error: 'provide a positive duration via days, hours, and/or minutes' });
+  }
 
   const result = await db.execute({
     sql: 'SELECT * FROM licenses WHERE license_key = ?',
@@ -93,7 +117,7 @@ router.post('/extend', asyncHandler(async (req, res) => {
   const lic = result.rows[0];
   if (!lic) return res.status(404).json({ error: 'license_key not found' });
 
-  const newExpiry = addDaysISO(lic.expires_at, days);
+  const newExpiry = addDurationISO(lic.expires_at, { days: totalDays, hours: totalHours, minutes: totalMinutes });
   await db.execute({ sql: 'UPDATE licenses SET expires_at = ? WHERE license_key = ?', args: [newExpiry, license_key] });
 
   res.json({ success: true, expires_at: newExpiry });
