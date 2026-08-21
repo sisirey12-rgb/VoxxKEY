@@ -1,88 +1,113 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
+require("dotenv").config();
 
-const { init } = require('./db');
-const authRoutes = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
-const licenseRoutes = require('./routes/license');
-const resellerRoutes = require('./routes/reseller');
+const express = require("express");
+const cors = require("cors");
 
-const app = express();
+const {
+  init
+} = require("./db");
 
-app.set('trust proxy', 1);
+const licenseRoutes =
+  require("./routes/licenseRoutes");
 
-const allowedOrigins = [
-  'https://yorvoxxvip.netlify.app',
-  'https://yorvoxxvipwebscan.netlify.app',
-  'https://voxxresellerdashboard.netlify.app',
-];
+const adminRoutes =
+  require("./routes/adminRoutes");
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // origin is undefined for same-origin/non-browser requests (e.g. curl) — allow those too
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS: ' + origin));
-    }
-  },
-  credentials: true,
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));;
-app.use(cookieParser());
-app.use(express.json());
-app.use((req, res, next) => {
-  console.log("================================");
-  console.log(req.method, req.originalUrl);
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-  next();
-});
+const resellerRoutes =
+  require("./routes/resellerRoutes");
 
-app.get("/debug-ip", (req, res) => {
-  res.json({
-    ip: req.ip,
-    ips: req.ips,
-    xForwardedFor: req.headers["x-forwarded-for"],
-    remoteAddress: req.socket.remoteAddress
-  });
-});
+const app =
+  express();
 
-app.get('/', (req, res) => {
-  res.json({ ok: true, service: 'voxx-license-server' });
-});
+app.set(
+  "trust proxy",
+  1
+);
 
-app.use('/admin', authRoutes);
-app.use('/admin', adminRoutes);
+app.use(
+  cors({
+    origin: true,
+    credentials: true
+  })
+);
 
-app.use('/api', licenseRoutes);
-app.use('/reseller', resellerRoutes);
+app.use(
+  express.json({
+    limit: "1mb"
+  })
+);
 
-app.use((err, req, res, next) => {
-  console.error('Unhandled route error:', err);
-  if (res.headersSent) return next(err);
-  res.status(500).json({ error: 'server_error' });
-});
+app.use(
+  express.urlencoded({
+    extended: true
+  })
+);
 
-process.on('unhandledRejection', (reason) => {
-  console.error('UNHANDLED REJECTION (server stayed up):', reason);
-});
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION (server stayed up):', err);
-});
+app.get(
+  "/",
+  (req, res) => {
+    res.json({
+      ok: true,
+      service:
+        "voxx-license-server"
+    });
+  }
+);
 
-const PORT = process.env.PORT || 3000;
+app.use(
+  "/api",
+  licenseRoutes
+);
+
+app.use(
+  "/admin",
+  adminRoutes
+);
+
+app.use(
+  "/reseller",
+  resellerRoutes
+);
+
+app.use(
+  (err, req, res, next) => {
+
+    console.error(
+      "[SERVER ERROR]",
+      err
+    );
+
+    res.status(500).json({
+      success: false,
+      error:
+        "Internal server error"
+    });
+  }
+);
+
+const PORT =
+  process.env.PORT || 3000;
 
 init()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`voxx-license-server listening on port ${PORT}`);
-    });
+
+    app.listen(
+      PORT,
+      "0.0.0.0",
+      () => {
+        console.log(
+          `Server running on port ${PORT}`
+        );
+      }
+    );
+
   })
   .catch(err => {
-    console.error('Failed to initialize database:', err);
+
+    console.error(
+      "Database initialization failed:",
+      err
+    );
+
     process.exit(1);
   });
