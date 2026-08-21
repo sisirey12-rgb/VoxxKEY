@@ -66,6 +66,33 @@ async function init() {
     // Already exists — fine.
   }
 
+  // Best-effort migration: lets admins hard-flag a key without deleting it,
+  // e.g. after a key-sharing alert fires. Not enforced automatically —
+  // computeStatus() doesn't read this — it's a marker for the admin UI/manual review.
+  try {
+    await db.execute(`ALTER TABLE licenses ADD COLUMN flagged INTEGER NOT NULL DEFAULT 0`);
+  } catch (e) {
+    // Already exists — fine.
+  }
+
+  // Every call to /api/activate, /api/validate, /api/status — used for
+  // IP rate-limiting, brute-force detection, and key-sharing detection
+  // (many distinct IPs hitting one key in a short window).
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS license_activity (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      license_key TEXT,
+      hwid        TEXT,
+      ip          TEXT NOT NULL,
+      user_agent  TEXT,
+      action      TEXT NOT NULL,
+      success     INTEGER NOT NULL,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_license_activity_ip ON license_activity(ip, created_at);`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_license_activity_key ON license_activity(license_key, created_at);`);
+
   // --- Admin login / security tables (from sql/002_auth_security.sql) ---
 
   // One row per admin account.
