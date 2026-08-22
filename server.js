@@ -8,13 +8,13 @@ const {
 } = require("./db");
 
 const licenseRoutes =
-  require("./routes/licenseRoutes");
+  require("./routes/license");
 
 const adminRoutes =
-  require("./routes/adminRoutes");
+  require("./routes/admin");
 
 const resellerRoutes =
-  require("./routes/resellerRoutes");
+  require("./routes/reseller");
 
 const app =
   express();
@@ -45,6 +45,17 @@ app.use(
 
 app.get(
   "/",
+  (req, res) => {
+    res.json({
+      ok: true,
+      service:
+        "voxx-license-server"
+    });
+  }
+);
+
+app.get(
+  "/health",
   (req, res) => {
     res.json({
       ok: true,
