@@ -2,19 +2,24 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const path = require("path");
 
 const {
   init
 } = require("./db");
 
 const licenseRoutes =
-  require("./routes/licenseRoutes");
+  require("./routes/license");
 
 const adminRoutes =
-  require("./routes/adminRoutes");
+  require("./routes/admin");
 
 const resellerRoutes =
-  require("./routes/resellerRoutes");
+  require("./routes/reseller");
+
+const authRoutes =
+  require("./routes/auth");
 
 const app =
   express();
@@ -27,9 +32,13 @@ app.set(
 app.use(
   cors({
     origin: true,
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Accept", "X-Admin-Key", "X-Reseller-Token"]
   })
 );
+
+app.use(cookieParser());
 
 app.use(
   express.json({
@@ -43,21 +52,22 @@ app.use(
   })
 );
 
-app.get(
-  "/",
-  (req, res) => {
-    res.json({
-      ok: true,
-      service:
-        "voxx-license-server"
-    });
-  }
-);
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "lolo.html"));
+});
+
+app.get("/health", (req, res) => {
+  res.json({ ok: true, service: "voxx-license-server" });
+});
 
 app.use(
   "/api",
   licenseRoutes
 );
+
+// Admin authentication/login routes are public where appropriate; the
+// protected admin router enforces requireSession itself.
+app.use("/admin", authRoutes);
 
 app.use(
   "/admin",
