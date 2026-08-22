@@ -1,0 +1,4945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#05020b">
+<meta name="color-scheme" content="dark">
+
+<title>YORVOXX // NEXUS</title>
+
+<link rel="icon" type="image/svg+xml"
+href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%237c3cff'/%3E%3Cstop offset='.35' stop-color='%23e52cff'/%3E%3Cstop offset='.65' stop-color='%23ff3b81'/%3E%3Cstop offset='1' stop-color='%23587cff'/%3E%3C/linearGradient%3E%3C/filter%3E%3C/defs%3E%3Crect x='5' y='5' width='118' height='118' rx='30' fill='%2305030b' stroke='url(%23g)' stroke-width='5'/%3E%3Cpath d='M72 13 38 70h25l-8 45 36-62H66z' fill='white'/%3E%3C/svg%3E">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+*,
+*::before,
+*::after{
+    box-sizing:border-box;
+}
+
+:root{
+    --bg:#030108;
+    --bg2:#08020f;
+    --text:#f5f0ff;
+    --muted:#92889f;
+    --purple:#7c3cff;
+    --violet:#a855f7;
+    --magenta:#e52cff;
+    --pink:#ff3b81;
+    --red:#ff526f;
+    --yellow:#ffb52e;
+    --blue:#587cff;
+    --cyan:#39d8ff;
+    --green:#4ade9a;
+
+    --mx:50%;
+    --my:50%;
+
+    --hue:
+        linear-gradient(
+            110deg,
+            #7c3cff,
+            #a855f7,
+            #e52cff,
+            #ff3b81,
+            #ff526f,
+            #ffb52e,
+            #587cff,
+            #7c3cff
+        );
+
+    --ease:cubic-bezier(.16,1,.3,1);
+}
+
+html{
+    min-height:100%;
+    scroll-behavior:smooth;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    overflow-x:hidden;
+    color:var(--text);
+
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    background:
+        radial-gradient(
+            circle at 10% 5%,
+            rgba(124,60,255,.20),
+            transparent 27%
+        ),
+        radial-gradient(
+            circle at 90% 12%,
+            rgba(229,44,255,.15),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 50% 90%,
+            rgba(88,124,255,.13),
+            transparent 32%
+        ),
+        linear-gradient(
+            145deg,
+            #030108,
+            #07020d 48%,
+            #020106
+        );
+
+    background-attachment:fixed;
+}
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:-5;
+
+    background:
+        radial-gradient(
+            500px circle at var(--mx) var(--my),
+            rgba(168,85,247,.10),
+            transparent 60%
+        );
+}
+
+body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:90;
+
+    background:
+        radial-gradient(
+            ellipse at center,
+            transparent 45%,
+            rgba(0,0,0,.30) 100%
+        );
+
+    opacity:.7;
+}
+
+button,
+input,
+textarea{
+    font:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+.orb{
+    position:fixed;
+    width:280px;
+    height:280px;
+    border-radius:50%;
+    pointer-events:none;
+    filter:blur(70px);
+    opacity:.14;
+    z-index:-3;
+    animation:orbFloat 13s ease-in-out infinite alternate;
+}
+
+.orb.one{
+    background:#7c3cff;
+    top:5%;
+    left:-120px;
+}
+
+.orb.two{
+    background:#e52cff;
+    top:38%;
+    right:-130px;
+    animation-delay:-4s;
+}
+
+.orb.three{
+    background:#587cff;
+    bottom:-140px;
+    left:35%;
+    animation-delay:-8s;
+}
+
+@keyframes orbFloat{
+    from{
+        transform:translate3d(0,0,0) scale(1);
+    }
+    to{
+        transform:translate3d(35px,-30px,0) scale(1.15);
+    }
+}
+
+.app{
+    width:min(1180px,calc(100% - 34px));
+    margin:auto;
+    padding:30px 0 45px;
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+
+.topbar{
+    height:58px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:22px;
+}
+
+.brand-mini{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.brand-symbol{
+    width:35px;
+    height:35px;
+    display:grid;
+    place-items:center;
+
+    color:#fff;
+    font-size:19px;
+
+    position:relative;
+}
+
+.brand-symbol::after{
+    content:"";
+    position:absolute;
+    inset:2px;
+    border-radius:12px;
+    background:var(--hue);
+    background-size:400% 100%;
+    animation:hueFlow 7s linear infinite;
+    filter:blur(12px);
+    opacity:.65;
+    z-index:-1;
+}
+
+.brand-mini strong{
+    display:block;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:3px;
+    color:#fff;
+}
+
+.brand-mini span{
+    display:block;
+    margin-top:2px;
+    color:#70677d;
+    font-size:7px;
+    letter-spacing:2px;
+}
+
+.nav-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:#91869f;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:1.8px;
+}
+
+.nav-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--green);
+    box-shadow:
+        0 0 8px var(--green),
+        0 0 18px rgba(74,222,154,.45);
+
+    animation:pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse{
+    50%{
+        opacity:.45;
+        transform:scale(.75);
+    }
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+
+.hero{
+    min-height:280px;
+    position:relative;
+    display:grid;
+    place-items:center;
+    text-align:center;
+    overflow:hidden;
+    margin-bottom:20px;
+}
+
+.hero-glow{
+    position:absolute;
+    width:390px;
+    height:390px;
+    border-radius:50%;
+
+    background:
+        conic-gradient(
+            #7c3cff,
+            #a855f7,
+            #e52cff,
+            #ff3b81,
+            #ffb52e,
+            #587cff,
+            #7c3cff
+        );
+
+    filter:blur(65px);
+    opacity:.11;
+
+    animation:
+        heroSpin 14s linear infinite,
+        hueRotate 9s linear infinite;
+}
+
+.hero-ring{
+    position:absolute;
+    width:390px;
+    height:390px;
+    border-radius:50%;
+
+    border:1px solid rgba(255,255,255,.06);
+
+    box-shadow:
+        inset 0 0 60px rgba(168,85,247,.04),
+        0 0 70px rgba(124,60,255,.08);
+
+    animation:ringPulse 6s ease-in-out infinite;
+}
+
+.hero-ring::before,
+.hero-ring::after{
+    content:"";
+    position:absolute;
+    inset:24px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.025);
+}
+
+.hero-ring::after{
+    inset:65px;
+}
+
+@keyframes heroSpin{
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+@keyframes hueRotate{
+    to{
+        filter:
+            blur(65px)
+            hue-rotate(360deg);
+    }
+}
+
+@keyframes ringPulse{
+    50%{
+        transform:scale(1.035);
+        opacity:.65;
+    }
+}
+
+.hero-content{
+    position:relative;
+    z-index:2;
+}
+
+.hero-kicker{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+
+    color:#887d98;
+    font-size:8px;
+    font-weight:600;
+    letter-spacing:2.5px;
+}
+
+.kicker-line{
+    width:38px;
+    height:1px;
+    background:linear-gradient(
+        90deg,
+        transparent,
+        #a855f7,
+        transparent
+    );
+}
+
+.hero h1{
+    margin:17px 0 10px;
+
+    color:#fff;
+
+    font-size:
+        clamp(50px,10vw,102px);
+
+    line-height:.9;
+    letter-spacing:8px;
+    font-weight:700;
+
+    text-shadow:
+        0 0 30px rgba(168,85,247,.13);
+}
+
+.hero-sub{
+    color:#a39aaf;
+    font-size:9px;
+    font-weight:500;
+    letter-spacing:3px;
+    line-height:1.9;
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+
+.dashboard{
+    display:grid;
+    gap:14px;
+}
+
+.card{
+    position:relative;
+    isolation:isolate;
+
+    border-radius:22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(17,9,30,.78),
+            rgba(7,4,13,.86)
+        );
+
+    border:1px solid rgba(255,255,255,.065);
+
+    box-shadow:
+        0 25px 70px rgba(0,0,0,.27),
+        inset 0 1px 0 rgba(255,255,255,.045);
+
+    overflow:hidden;
+
+    transition:
+        transform .35s var(--ease),
+        border-color .35s,
+        box-shadow .35s;
+}
+
+.card::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    z-index:-2;
+
+    border-radius:inherit;
+
+    background:var(--hue);
+    background-size:400% 100%;
+
+    animation:hueFlow 8s linear infinite;
+
+    opacity:.35;
+    filter:blur(10px);
+}
+
+.card::after{
+    content:"";
+    position:absolute;
+    inset:1px;
+    z-index:-1;
+
+    border-radius:21px;
+
+    background:
+        radial-gradient(
+            500px circle at var(--mx) var(--my),
+            rgba(168,85,247,.06),
+            transparent 45%
+        ),
+        rgba(5,2,10,.94);
+}
+
+.card:hover{
+    border-color:rgba(168,85,247,.22);
+
+    box-shadow:
+        0 28px 80px rgba(0,0,0,.35),
+        0 0 30px rgba(168,85,247,.08),
+        inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.card-inner{
+    position:relative;
+    padding:21px;
+}
+
+@keyframes hueFlow{
+    0%{
+        background-position:0% 50%;
+    }
+    50%{
+        background-position:100% 50%;
+    }
+    100%{
+        background-position:0% 50%;
+    }
+}
+
+/* ============================================================
+   HEADINGS
+   ============================================================ */
+
+.card-heading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.heading-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.heading-icon{
+    width:35px;
+    height:35px;
+
+    display:grid;
+    place-items:center;
+
+    border-radius:11px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.07),
+            rgba(255,255,255,.015)
+        );
+
+    color:#eee6ff;
+    font-size:14px;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.07),
+        0 8px 20px rgba(0,0,0,.2);
+
+    position:relative;
+}
+
+.heading-icon::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:12px;
+    padding:1px;
+
+    background:var(--hue);
+    background-size:400% 100%;
+    animation:hueFlow 7s linear infinite;
+
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+
+    opacity:.5;
+}
+
+.heading-title{
+    color:#eee8f7;
+    font-size:10px;
+    font-weight:650;
+    letter-spacing:2px;
+}
+
+.heading-desc{
+    margin-top:4px;
+    color:#746a80;
+    font-size:7px;
+    letter-spacing:1.4px;
+}
+
+.heading-index{
+    color:#554b61;
+    font-size:7px;
+    letter-spacing:1.5px;
+}
+
+/* ============================================================
+   LICENSE
+   ============================================================ */
+
+.license-form{
+    display:flex;
+    gap:10px;
+    margin-top:17px;
+}
+
+.input-shell{
+    flex:1;
+    min-width:0;
+    position:relative;
+}
+
+.input-icon{
+    position:absolute;
+    left:14px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#a855f7;
+    font-size:10px;
+    pointer-events:none;
+}
+
+.input-shell input{
+    width:100%;
+    height:50px;
+
+    border-radius:13px;
+    border:1px solid rgba(255,255,255,.065);
+    outline:none;
+
+    padding:0 15px 0 38px;
+
+    color:#fff;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.045),
+            rgba(255,255,255,.012)
+        );
+
+    box-shadow:
+        inset 0 2px 9px rgba(0,0,0,.24),
+        0 8px 25px rgba(0,0,0,.14);
+
+    transition:.3s;
+}
+
+.input-shell input:focus{
+    border-color:rgba(168,85,247,.38);
+
+    box-shadow:
+        0 0 25px rgba(168,85,247,.08),
+        inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.input-shell input::placeholder{
+    color:#5c5267;
+}
+
+.activate{
+    min-width:320px;
+    min-height:70px;
+    padding:0 32px;
+    border:0;
+    border-radius:15px;
+
+    color:#fff;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:2.4px;
+
+    background:
+        linear-gradient(
+            110deg,
+            #7c3cff,
+            #a855f7,
+            #e52cff,
+            #ff3b81,
+            #ffb52e,
+            #587cff,
+            #7c3cff
+        );
+
+    background-size:400% 100%;
+
+    animation:hueFlow 6s linear infinite;
+
+    box-shadow:
+        0 10px 28px rgba(124,60,255,.17);
+
+    transition:
+        transform .25s,
+        box-shadow .25s;
+}
+
+.activate:hover{
+    transform:translateY(-2px);
+    box-shadow:
+        0 15px 35px rgba(229,44,255,.22),
+        0 0 30px rgba(124,60,255,.12);
+}
+
+.activate:disabled{
+    opacity:.6;
+    cursor:wait;
+}
+
+.license-bottom{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+
+    margin-top:13px;
+}
+
+.license-message{
+    color:#776d82;
+    font-size:8px;
+}
+
+.license-message.bad{
+    color:#ff647c;
+}
+
+.license-message.good{
+    color:#66e5ad;
+}
+
+.license-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+}
+
+.chip{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+
+    min-height:27px;
+    padding:0 9px;
+
+    border-radius:9px;
+
+    color:#9e92aa;
+    font-size:7px;
+    letter-spacing:.7px;
+
+    background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.055);
+}
+
+.license-status{
+    display:flex;
+    align-items:center;
+    gap:7px;
+
+    padding:7px 10px;
+    border-radius:9px;
+
+    background:rgba(255,255,255,.025);
+    border:1px solid rgba(255,255,255,.055);
+
+    color:#8f849b;
+    font-size:7px;
+    letter-spacing:1.2px;
+}
+
+.status-light{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#70677b;
+}
+
+.license-status.checking .status-light{
+    background:#ffb52e;
+    box-shadow:0 0 10px #ffb52e;
+    animation:pulse 1s infinite;
+}
+
+.license-status.active .status-light{
+    background:#4ade9a;
+    box-shadow:0 0 10px #4ade9a;
+}
+
+.license-status.error .status-light{
+    background:#ff526f;
+    box-shadow:0 0 10px #ff526f;
+}
+
+.license-status.active{
+    color:#78e8b6;
+}
+
+.license-status.error{
+    color:#ff7188;
+}
+
+/* ============================================================
+   TELEGRAM
+   ============================================================ */
+
+.telegram{
+    position:relative;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+
+    width:100%;
+    min-height:50px;
+    margin-top:15px;
+
+    border-radius:13px;
+
+    text-decoration:none;
+
+    color:#eaf7ff;
+
+    font-size:8px;
+    font-weight:650;
+    letter-spacing:1.6px;
+
+    background:
+        linear-gradient(
+            110deg,
+            rgba(42,171,238,.12),
+            rgba(88,124,255,.08),
+            rgba(168,85,247,.08)
+        );
+
+    border:1px solid rgba(255,255,255,.06);
+
+    transition:.3s;
+}
+
+.telegram:hover{
+    transform:translateY(-2px);
+
+    box-shadow:
+        0 15px 35px rgba(38,155,235,.10),
+        0 0 25px rgba(88,124,255,.07);
+}
+
+.telegram-icon{
+    width:25px;
+    height:25px;
+
+    display:grid;
+    place-items:center;
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            145deg,
+            #2aabee,
+            #587cff
+        );
+
+    box-shadow:
+        0 0 15px rgba(42,171,238,.3);
+}
+
+/* ============================================================
+   TARGET
+   ============================================================ */
+
+.target-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:16px;
+}
+
+.target-input{
+    width:100%;
+    height:49px;
+
+    padding:0 14px;
+
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.06);
+
+    outline:none;
+
+    color:#fff;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.04),
+            rgba(255,255,255,.01)
+        );
+
+    box-shadow:
+        inset 0 2px 8px rgba(0,0,0,.2);
+
+    transition:.3s;
+}
+
+.target-input:focus{
+    border-color:rgba(168,85,247,.38);
+    box-shadow:
+        0 0 22px rgba(168,85,247,.08),
+        inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.target-input::placeholder{
+    color:#5e5468;
+}
+
+/* ============================================================
+   WEBSITE VERIFICATION PANEL
+   ============================================================ */
+
+.verify-panel{
+    margin-top:13px;
+    padding:13px;
+
+    border-radius:14px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(124,60,255,.055),
+            rgba(255,255,255,.018)
+        );
+
+    border:1px solid rgba(255,255,255,.05);
+}
+
+.verify-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.verify-label{
+    color:#80758d;
+    font-size:7px;
+    letter-spacing:1.5px;
+}
+
+.verify-state{
+    display:flex;
+    align-items:center;
+    gap:7px;
+
+    color:#81778c;
+    font-size:7px;
+    letter-spacing:1px;
+}
+
+.verify-dot{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#665c70;
+}
+
+.verify-state.working .verify-dot{
+    background:#ffb52e;
+    box-shadow:0 0 10px #ffb52e;
+    animation:pulse 1s infinite;
+}
+
+.verify-state.good .verify-dot{
+    background:#4ade9a;
+    box-shadow:0 0 10px #4ade9a;
+}
+
+.verify-state.warn .verify-dot{
+    background:#ffb52e;
+    box-shadow:0 0 10px #ffb52e;
+}
+
+.verify-state.bad .verify-dot{
+    background:#ff526f;
+    box-shadow:0 0 10px #ff526f;
+}
+
+.verify-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:7px;
+    margin-top:10px;
+}
+
+.verify-stat{
+    min-height:54px;
+
+    padding:9px;
+
+    border-radius:10px;
+
+    background:rgba(255,255,255,.018);
+    border:1px solid rgba(255,255,255,.04);
+}
+
+.verify-stat small{
+    display:block;
+    color:#5f5669;
+    font-size:6px;
+    letter-spacing:1px;
+}
+
+.verify-stat strong{
+    display:block;
+    margin-top:5px;
+
+    color:#bdb3c9;
+    font-size:8px;
+    font-weight:600;
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+/* ============================================================
+   RESOURCE MATRIX
+   ============================================================ */
+
+.resource-all{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:13px 14px;
+    margin-top:16px;
+
+    border-radius:13px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(229,44,255,.065),
+            rgba(124,60,255,.035)
+        );
+
+    border:1px solid rgba(229,44,255,.10);
+}
+
+.resource-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:9px;
+    margin-top:9px;
+}
+
+.resource{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    min-height:49px;
+    padding:10px 12px;
+
+    border-radius:12px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.04),
+            rgba(255,255,255,.01)
+        );
+
+    border:1px solid rgba(255,255,255,.045);
+
+    transition:.25s;
+}
+
+.resource:hover{
+    transform:translateY(-2px);
+    border-color:rgba(168,85,247,.18);
+}
+
+.resource-label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    color:#b7adbf;
+    font-size:8px;
+    letter-spacing:1px;
+}
+
+.resource-icon{
+    color:#bd69ff;
+}
+
+.switch{
+    position:relative;
+    width:37px;
+    height:20px;
+}
+
+.switch input{
+    display:none;
+}
+
+.slider{
+    position:absolute;
+    inset:0;
+
+    border-radius:20px;
+    background:#19121f;
+
+    border:1px solid rgba(255,255,255,.07);
+
+    transition:.25s;
+}
+
+.slider::before{
+    content:"";
+    position:absolute;
+
+    width:14px;
+    height:14px;
+
+    left:2px;
+    top:2px;
+
+    border-radius:50%;
+
+    background:#756b7d;
+
+    transition:.25s;
+}
+
+.switch input:checked + .slider{
+    background:
+        linear-gradient(
+            90deg,
+            #7c3cff,
+            #e52cff,
+            #ff3b81
+        );
+
+    box-shadow:
+        0 0 14px rgba(229,44,255,.18);
+}
+
+.switch input:checked + .slider::before{
+    transform:translateX(17px);
+    background:#fff;
+    box-shadow:0 0 8px rgba(255,255,255,.55);
+}
+
+.switch input:disabled + .slider{
+    opacity:.45;
+}
+
+/* ============================================================
+   EXTRACTION
+   ============================================================ */
+
+.download-button{
+    width:100%;
+    min-height:54px;
+
+    margin-top:17px;
+
+    border:0;
+    border-radius:14px;
+
+    color:#fff;
+
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:1.8px;
+
+    background:
+        linear-gradient(
+            110deg,
+            #7c3cff,
+            #a855f7,
+            #e52cff,
+            #ff3b81,
+            #ffb52e,
+            #587cff,
+            #7c3cff
+        );
+
+    background-size:400% 100%;
+    animation:hueFlow 6s linear infinite;
+
+    box-shadow:
+        0 12px 32px rgba(124,60,255,.16);
+
+    transition:.3s;
+}
+
+.download-button:hover:not(:disabled){
+    transform:translateY(-2px);
+
+    box-shadow:
+        0 18px 45px rgba(229,44,255,.20),
+        0 0 35px rgba(124,60,255,.10);
+}
+
+.download-button:disabled{
+    cursor:not-allowed;
+    filter:saturate(.45);
+    opacity:.62;
+}
+
+.lock-note{
+    margin-top:8px;
+    text-align:center;
+
+    color:#5f5668;
+    font-size:7px;
+    letter-spacing:.7px;
+}
+
+.progress-wrap{
+    margin-top:18px;
+}
+
+.progress-top{
+    display:flex;
+    justify-content:space-between;
+
+    color:#766c80;
+    font-size:7px;
+    letter-spacing:1.2px;
+}
+
+.progress-track{
+    height:7px;
+    margin-top:9px;
+
+    overflow:hidden;
+    border-radius:10px;
+
+    background:#100b16;
+    border:1px solid rgba(255,255,255,.035);
+}
+
+.progress-bar{
+    width:0;
+    height:100%;
+
+    border-radius:inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            #7c3cff,
+            #a855f7,
+            #e52cff,
+            #ff3b81,
+            #ffb52e,
+            #587cff
+        );
+
+    background-size:300% 100%;
+    animation:hueFlow 5s linear infinite;
+
+    box-shadow:
+        0 0 14px rgba(168,85,247,.45);
+
+    transition:width .25s ease;
+}
+
+/* ============================================================
+   TERMINAL
+   ============================================================ */
+
+.terminal{
+    margin-top:17px;
+
+    border-radius:15px;
+    overflow:hidden;
+
+    background:#020107;
+
+    border:1px solid rgba(168,85,247,.10);
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.035),
+        0 18px 50px rgba(0,0,0,.25);
+}
+
+.terminal-head{
+    height:40px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 13px;
+
+    color:#8d8199;
+    font-size:7px;
+    letter-spacing:1.6px;
+
+    background:#08040d;
+    border-bottom:1px solid rgba(255,255,255,.045);
+}
+
+.terminal-head-left{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.terminal-live{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#4ade9a;
+    box-shadow:0 0 9px #4ade9a;
+}
+
+.terminal-dots{
+    display:flex;
+    gap:5px;
+}
+
+.terminal-dots i{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+}
+
+.terminal-dots i:nth-child(1){
+    background:#ff5278;
+    box-shadow:0 0 7px #ff5278;
+}
+
+.terminal-dots i:nth-child(2){
+    background:#ffb52e;
+    box-shadow:0 0 7px #ffb52e;
+}
+
+.terminal-dots i:nth-child(3){
+    background:#4ade9a;
+    box-shadow:0 0 7px #4ade9a;
+}
+
+#log{
+    display:block;
+    width:100%;
+    min-height:245px;
+
+    resize:vertical;
+
+    padding:14px;
+
+    border:0;
+    outline:0;
+
+    color:#cdb4f3;
+
+    background:
+        linear-gradient(
+            rgba(124,60,255,.015) 1px,
+            transparent 1px
+        );
+
+    background-size:100% 21px;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size:9px;
+    line-height:1.7;
+
+    text-shadow:
+        0 0 7px rgba(168,85,247,.17);
+}
+
+/* ============================================================
+   WEBSITE PREVIEW
+   ============================================================ */
+
+.preview-toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    margin-top:15px;
+    padding:8px;
+
+    border-radius:12px;
+
+    background:#09050e;
+    border:1px solid rgba(255,255,255,.05);
+}
+
+.preview-url{
+    flex:1;
+    min-width:0;
+
+    height:34px;
+
+    padding:0 11px;
+
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.045);
+
+    background:#040208;
+    color:#a89cb3;
+
+    font-size:7px;
+    outline:0;
+}
+
+.preview-action{
+    height:34px;
+    padding:0 12px;
+
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:8px;
+
+    background:rgba(255,255,255,.035);
+    color:#c6b9d1;
+
+    font-size:7px;
+    letter-spacing:.8px;
+
+    transition:.25s;
+}
+
+.preview-action:hover{
+    border-color:rgba(168,85,247,.25);
+    color:#fff;
+}
+
+.preview-frame{
+    position:relative;
+    overflow:hidden;
+
+    margin-top:10px;
+
+    border-radius:15px;
+
+    background:#fff;
+
+    border:1px solid rgba(255,255,255,.07);
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.1),
+        0 20px 50px rgba(0,0,0,.25);
+}
+
+.preview-statusbar{
+    position:absolute;
+    z-index:5;
+
+    top:9px;
+    left:9px;
+
+    display:flex;
+    align-items:center;
+    gap:6px;
+
+    padding:6px 8px;
+
+    border-radius:8px;
+
+    background:rgba(0,0,0,.72);
+    color:#bdb2c7;
+
+    font-size:6px;
+    letter-spacing:1px;
+
+    pointer-events:none;
+}
+
+.preview-status-dot{
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:#777;
+}
+
+.preview-status-dot.good{
+    background:#4ade9a;
+    box-shadow:0 0 7px #4ade9a;
+}
+
+.preview-status-dot.warn{
+    background:#ffb52e;
+    box-shadow:0 0 7px #ffb52e;
+}
+
+.preview-status-dot.bad{
+    background:#ff526f;
+    box-shadow:0 0 7px #ff526f;
+}
+
+.preview{
+    width:100%;
+    height:430px;
+
+    display:block;
+
+    border:0;
+    background:#fff;
+}
+
+/* ============================================================
+   VERIFICATION SUMMARY
+   ============================================================ */
+
+.summary-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    margin-top:12px;
+}
+
+.summary-item{
+    min-height:55px;
+    padding:9px;
+
+    border-radius:10px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.035),
+            rgba(255,255,255,.01)
+        );
+
+    border:1px solid rgba(255,255,255,.045);
+}
+
+.summary-item span{
+    display:block;
+    color:#5d5366;
+    font-size:6px;
+    letter-spacing:1px;
+}
+
+.summary-item strong{
+    display:block;
+    margin-top:5px;
+    color:#bcb1c7;
+    font-size:8px;
+    font-weight:600;
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+/* ============================================================
+   LOCKED STATE
+   ============================================================ */
+
+.locked-zone{
+    transition:
+        opacity .3s,
+        filter .3s,
+        transform .3s;
+}
+
+.locked-zone:not(.unlocked){
+    opacity:.92;
+}
+
+.locked-zone.unlocked{
+    opacity:1;
+}
+
+.locked-zone.unlocked::before{
+    opacity:.5;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.footer{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:15px;
+
+    margin-top:24px;
+
+    color:#554b60;
+    font-size:7px;
+    letter-spacing:2px;
+}
+
+.footer-line{
+    width:55px;
+    height:1px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            #7c3cff,
+            transparent
+        );
+
+    opacity:.45;
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media(max-width:700px){
+
+    .app{
+        width:min(100% - 18px,1180px);
+        padding-top:17px;
+    }
+
+    .topbar{
+        margin-bottom:15px;
+    }
+
+    .brand-mini span{
+        display:none;
+    }
+
+    .nav-status{
+        font-size:6px;
+    }
+
+    .hero{
+        min-height:245px;
+    }
+
+    .hero h1{
+        font-size:49px;
+        letter-spacing:4px;
+    }
+
+    .hero-ring{
+        width:280px;
+        height:280px;
+    }
+
+    .hero-glow{
+        width:280px;
+        height:280px;
+    }
+
+    .card-inner{
+        padding:16px;
+    }
+
+    .license-form{
+        flex-direction:column;
+    }
+
+    .activate{
+        width:100%;
+    }
+
+    .license-bottom{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .target-grid{
+        grid-template-columns:1fr;
+    }
+
+    .resource-grid{
+        grid-template-columns:1fr;
+    }
+
+    .verify-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .summary-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .heading-index{
+        display:none;
+    }
+
+    .preview{
+        height:300px;
+    }
+
+    .preview-toolbar{
+        flex-wrap:wrap;
+    }
+
+    .preview-url{
+        flex-basis:100%;
+    }
+
+    .preview-action{
+        flex:1;
+    }
+
+    #log{
+        min-height:220px;
+        font-size:8px;
+    }
+}
+
+@media(prefers-reduced-motion:reduce){
+
+    *,
+    *::before,
+    *::after{
+        animation-duration:.01ms!important;
+        animation-iteration-count:1!important;
+        scroll-behavior:auto!important;
+        transition-duration:.01ms!important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="orb one"></div>
+<div class="orb two"></div>
+<div class="orb three"></div>
+
+<main class="app">
+
+<!-- =========================================================
+     TOP BAR
+     ========================================================= -->
+
+<nav class="topbar">
+
+    <div class="brand-mini">
+
+        <div class="brand-symbol">⚡</div>
+
+        <div>
+            <strong>YORVOXX</strong>
+            <span>NEXUS DOWNLOADER</span>
+        </div>
+
+    </div>
+
+    <div class="nav-status">
+        <span class="nav-dot"></span>
+        SYSTEM ONLINE
+    </div>
+
+</nav>
+
+
+<!-- =========================================================
+     HERO
+     ========================================================= -->
+
+<section class="hero">
+
+    <div class="hero-glow"></div>
+    <div class="hero-ring"></div>
+
+    <div class="hero-content">
+
+        <div class="hero-kicker">
+
+            <span class="kicker-line"></span>
+
+            ADVANCED WEB EXTRACTION CONSOLE
+
+            <span
+                class="kicker-line"
+                style="transform:rotate(180deg)"
+            ></span>
+
+        </div>
+
+        <h1>YORVOXX</h1>
+
+        <div class="hero-sub">
+
+            DEVELOPED // BY // YORVOXX
+
+            <br>
+
+            <span style="opacity:.55">
+                PRIVATE RESOURCE DOWNLOADER
+            </span>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     DASHBOARD
+     ========================================================= -->
+
+<section class="dashboard">
+
+
+<!-- =========================================================
+     LICENSE
+     ========================================================= -->
+
+<article class="card license-card">
+
+<div class="card-inner">
+
+<div class="card-heading">
+
+<div class="heading-left">
+
+<div class="heading-icon">
+🔑
+</div>
+
+<div>
+
+<div class="heading-title">
+LICENSE AUTHENTICATION
+</div>
+
+<div class="heading-desc">
+VERIFY YOUR VOXX ACCESS CREDENTIAL
+</div>
+
+</div>
+
+</div>
+
+<div
+    id="licenseBadge"
+    class="license-status"
+>
+
+<span class="status-light"></span>
+
+<span id="licenseBadgeText">
+LOCKED
+</span>
+
+</div>
+
+</div>
+
+
+<div class="license-form">
+
+<div class="input-shell">
+
+<span class="input-icon">
+◆
+</span>
+
+<input
+    type="text"
+    id="licenseKey"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder="VOXX-XXXXXXXX"
+>
+
+</div>
+
+<button
+    class="activate"
+    id="activateBtn"
+    type="button"
+>
+VERIFY LICENSE
+</button>
+
+</div>
+
+
+<div class="license-bottom">
+
+<span
+    id="licenseMessage"
+    class="license-message"
+>
+License verification required.
+</span>
+
+<div class="license-meta">
+
+<span
+    class="chip"
+    id="licenseExpiry"
+>
+Expires: —
+</span>
+
+<span
+    class="chip"
+    id="licenseDays"
+>
+◷ <span id="licenseCountdown">—d —h —m</span>
+</span>
+
+</div>
+
+</div>
+
+</div>
+
+</article>
+
+
+<!-- =========================================================
+     SUPPORT
+     ========================================================= -->
+
+<article class="card">
+
+<div class="card-inner">
+
+<div class="card-heading">
+
+<div class="heading-left">
+
+<div class="heading-icon">
+◈
+</div>
+
+<div>
+
+<div class="heading-title">
+VOXX NETWORK
+</div>
+
+<div class="heading-desc">
+OFFICIAL SUPPORT CHANNEL
+</div>
+
+</div>
+
+</div>
+
+<div class="heading-index">
+01 / 04
+</div>
+
+</div>
+
+
+<a
+    class="telegram"
+    href="https://t.me/yorxvox"
+    target="_blank"
+    rel="noopener noreferrer"
+>
+
+<span class="telegram-icon">
+➤
+</span>
+
+OPEN TELEGRAM SUPPORT
+
+<span style="opacity:.45">
+@yor_forg3r
+</span>
+
+</a>
+
+</div>
+
+</article>
+
+
+<!-- =========================================================
+     TARGET
+     ========================================================= -->
+
+<article class="card locked-zone">
+
+<div class="card-inner">
+
+<div class="card-heading">
+
+<div class="heading-left">
+
+<div class="heading-icon">
+◎
+</div>
+
+<div>
+
+<div class="heading-title">
+TARGET
+</div>
+
+<div class="heading-desc">
+DEFINE AND VERIFY THE SOURCE WEBSITE
+</div>
+
+</div>
+
+</div>
+
+<div class="heading-index">
+02 / 04
+</div>
+
+</div>
+
+
+<div class="target-grid">
+
+<input
+    class="target-input"
+    type="text"
+    id="url"
+    placeholder="https://example.com"
+>
+
+<input
+    class="target-input"
+    type="text"
+    id="zipName"
+    placeholder="Custom ZIP name (optional)"
+>
+
+</div>
+
+
+<!-- WEBSITE VERIFICATION -->
+
+<div class="verify-panel">
+
+<div class="verify-row">
+
+<div class="verify-label">
+WEBSITE VERIFICATION
+</div>
+
+<div
+    class="verify-state"
+    id="verifyState"
+>
+
+<span
+    class="verify-dot"
+    id="verifyDot"
+></span>
+
+<span id="verifyStateText">
+NOT CHECKED
+</span>
+
+</div>
+
+</div>
+
+
+<div class="verify-grid">
+
+<div class="verify-stat">
+<small>PROTOCOL</small>
+<strong id="verifyProtocol">—</strong>
+</div>
+
+<div class="verify-stat">
+<small>DOMAIN</small>
+<strong id="verifyDomain">—</strong>
+</div>
+
+<div class="verify-stat">
+<small>LATENCY</small>
+<strong id="verifyLatency">—</strong>
+</div>
+
+<div class="verify-stat">
+<small>HTTP</small>
+<strong id="verifyHttp">—</strong>
+</div>
+
+</div>
+
+
+<div class="summary-grid">
+
+<div class="summary-item">
+<span>PAGE TITLE</span>
+<strong id="verifyTitle">—</strong>
+</div>
+
+<div class="summary-item">
+<span>HOST</span>
+<strong id="verifyHost">—</strong>
+</div>
+
+<div class="summary-item">
+<span>PREVIEW</span>
+<strong id="verifyPreview">—</strong>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</article>
+
+
+<!-- =========================================================
+     RESOURCES
+     ========================================================= -->
+
+<article class="card locked-zone">
+
+<div class="card-inner">
+
+<div class="card-heading">
+
+<div class="heading-left">
+
+<div class="heading-icon">
+◇
+</div>
+
+<div>
+
+<div class="heading-title">
+RESOURCE MATRIX
+</div>
+
+<div class="heading-desc">
+SELECT CONTENT TO EXTRACT
+</div>
+
+</div>
+
+</div>
+
+<div class="heading-index">
+03 / 04
+</div>
+
+</div>
+
+
+<div class="resource-all">
+
+<div class="resource-label">
+
+<span class="resource-icon">
+◉
+</span>
+
+ALL RESOURCES
+
+</div>
+
+<label class="switch">
+
+<input
+    type="checkbox"
+    id="allChk"
+    checked
+>
+
+<span class="slider"></span>
+
+</label>
+
+</div>
+
+
+<div class="resource-grid">
+
+<div class="resource">
+
+<div class="resource-label">
+
+<span class="resource-icon">
+◇
+</span>
+
+HTML
+
+</div>
+
+<label class="switch">
+
+<input
+    type="checkbox"
+    class="resChk"
+    id="htmlChk"
+    checked
+>
+
+<span class="slider"></span>
+
+</label>
+
+</div>
+
+
+<div class="resource">
+
+<div class="resource-label">
+
+<span class="resource-icon">
+◆
+</span>
+
+CSS
+
+</div>
+
+<label class="switch">
+
+<input
+    type="checkbox"
+    class="resChk"
+    id="cssChk"
+    checked
+>
+
+<span class="slider"></span>
+
+</label>
+
+</div>
+
+
+<div class="resource">
+
+<div class="resource-label">
+
+<span class="resource-icon">
+⚡
+</span>
+
+JavaScript
+
+</div>
+
+<label class="switch">
+
+<input
+    type="checkbox"
+    class="resChk"
+    id="jsChk"
+    checked
+>
+
+<span class="slider"></span>
+
+</label>
+
+</div>
+
+
+<div class="resource">
+
+<div class="resource-label">
+
+<span class="resource-icon">
+▧
+</span>
+
+Images
+
+</div>
+
+<label class="switch">
+
+<input
+    type="checkbox"
+    class="resChk"
+    id="imgChk"
+    checked
+>
+
+<span class="slider"></span>
+
+</label>
+
+</div>
+
+
+<div class="resource">
+
+<div class="resource-label">
+
+<span class="resource-icon">
+Aa
+</span>
+
+Fonts
+
+</div>
+
+<label class="switch">
+
+<input
+    type="checkbox"
+    class="resChk"
+    id="fontChk"
+    checked
+>
+
+<span class="slider"></span>
+
+</label>
+
+</div>
+
+</div>
+
+</div>
+
+</article>
+
+
+<!-- =========================================================
+     DOWNLOAD / TERMINAL
+     ========================================================= -->
+
+<article class="card download-card locked-zone">
+
+<div class="card-inner">
+
+<div class="card-heading">
+
+<div class="heading-left">
+
+<div class="heading-icon">
+⚡
+</div>
+
+<div>
+
+<div class="heading-title">
+EXTRACTION ENGINE
+</div>
+
+<div class="heading-desc">
+BUILD YOUR AUTHORIZED RESOURCE ARCHIVE
+</div>
+
+</div>
+
+</div>
+
+<div class="heading-index">
+04 / 04
+</div>
+
+</div>
+
+
+<button
+    class="download-button"
+    id="downloadBtn"
+    onclick="downloadSite()"
+    disabled
+>
+🔒 VERIFY LICENSE TO DOWNLOAD
+</button>
+
+
+<div
+    class="lock-note"
+    id="downloadLockNote"
+>
+License verification is required.
+</div>
+
+
+<div class="progress-wrap">
+
+<div class="progress-top">
+
+<span>
+EXTRACTION PROGRESS
+</span>
+
+<span id="progressText">
+0%
+</span>
+
+</div>
+
+<div class="progress-track">
+
+<div
+    class="progress-bar"
+    id="progressBar"
+></div>
+
+</div>
+
+</div>
+
+
+<div class="terminal">
+
+<div class="terminal-head">
+
+<div class="terminal-head-left">
+
+<span class="terminal-live"></span>
+
+NEXUS TERMINAL
+
+</div>
+
+<div class="terminal-dots">
+
+<i></i>
+<i></i>
+<i></i>
+
+</div>
+
+</div>
+
+<textarea
+    id="log"
+    readonly
+    placeholder="Awaiting authorized operation..."
+></textarea>
+
+</div>
+
+</div>
+
+</article>
+
+
+<!-- =========================================================
+     LIVE PREVIEW
+     ========================================================= -->
+
+<article class="card locked-zone">
+
+<div class="card-inner">
+
+<div class="card-heading">
+
+<div class="heading-left">
+
+<div class="heading-icon">
+▣
+</div>
+
+<div>
+
+<div class="heading-title">
+LIVE PREVIEW
+</div>
+
+<div class="heading-desc">
+SANDBOXED HTML RENDER
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="preview-toolbar">
+
+<input
+    id="previewUrl"
+    class="preview-url"
+    type="text"
+    readonly
+    placeholder="Verified target appears here"
+>
+
+<button
+    class="preview-action"
+    id="previewReload"
+    type="button"
+>
+↻ RELOAD
+</button>
+
+<button
+    class="preview-action"
+    id="previewOpen"
+    type="button"
+>
+↗ OPEN
+</button>
+
+</div>
+
+
+<div class="preview-frame">
+
+<div class="preview-statusbar">
+
+<span
+    id="previewStatusDot"
+    class="preview-status-dot"
+></span>
+
+<span id="previewStatusText">
+WAITING FOR VERIFIED TARGET
+</span>
+
+</div>
+
+<iframe
+    id="preview"
+    class="preview"
+    sandbox=""
+    referrerpolicy="no-referrer"
+></iframe>
+
+</div>
+
+</div>
+
+</article>
+
+
+</section>
+
+
+<footer class="footer">
+
+<span class="footer-line"></span>
+
+YORVOXX NEXUS // ONLINE
+
+<span class="footer-line"></span>
+
+</footer>
+
+</main>
+
+
+<script>
+/* ============================================================
+   YORVOXX NEXUS ENGINE
+   ============================================================ */
+
+const LICENSE_API =
+    (window.VOXX_LICENSE_API || window.location.origin);
+
+const LICENSE_KEY_STORAGE =
+    "yorvoxx_license_key";
+
+const LICENSE_HWID_STORAGE =
+    "yorvoxx_browser_hwid";
+
+let licenseValid = false;
+let licenseChecking = false;
+let licenseCountdownTimer = null;
+let verifiedTarget = "";
+let verifiedHtml = "";
+
+
+/* ============================================================
+   BROWSER HWID
+   ============================================================ */
+
+function getBrowserHWID(){
+
+    let id =
+        localStorage.getItem(
+            LICENSE_HWID_STORAGE
+        );
+
+    if(!id){
+
+        if(
+            window.crypto &&
+            crypto.randomUUID
+        ){
+
+            id = crypto.randomUUID();
+
+        }else{
+
+            id =
+                "web-" +
+                Date.now().toString(36) +
+                "-" +
+                Math.random()
+                    .toString(36)
+                    .slice(2,12);
+        }
+
+        localStorage.setItem(
+            LICENSE_HWID_STORAGE,
+            id
+        );
+    }
+
+    return id;
+}
+
+
+/* ============================================================
+   LICENSE UI
+   ============================================================ */
+
+function setLicenseUI(
+    state,
+    message,
+    data = null
+){
+
+    const badge =
+        document.getElementById(
+            "licenseBadge"
+        );
+
+    const badgeText =
+        document.getElementById(
+            "licenseBadgeText"
+        );
+
+    const msg =
+        document.getElementById(
+            "licenseMessage"
+        );
+
+    const input =
+        document.getElementById(
+            "licenseKey"
+        );
+
+    const btn =
+        document.getElementById(
+            "activateBtn"
+        );
+
+    const download =
+        document.getElementById(
+            "downloadBtn"
+        );
+
+    const note =
+        document.getElementById(
+            "downloadLockNote"
+        );
+
+    const zones =
+        document.querySelectorAll(
+            ".locked-zone"
+        );
+
+
+    badge.className =
+        "license-status";
+
+
+    msg.className =
+        "license-message";
+
+
+    if(
+        licenseCountdownTimer
+    ){
+
+        clearInterval(
+            licenseCountdownTimer
+        );
+
+        licenseCountdownTimer =
+            null;
+    }
+
+
+    if(state === "checking"){
+
+        badge.classList.add(
+            "checking"
+        );
+
+        badgeText.textContent =
+            "CHECKING";
+
+        msg.textContent =
+            message ||
+            "Contacting license server…";
+
+        input.disabled = true;
+        btn.disabled = true;
+
+        download.disabled = true;
+
+        return;
+    }
+
+
+    if(state === "active"){
+
+        licenseValid = true;
+
+        badge.classList.add(
+            "active"
+        );
+
+        badgeText.textContent =
+            "VALID";
+
+        msg.classList.add(
+            "good"
+        );
+
+        msg.textContent =
+            message ||
+            "License verified successfully.";
+
+        input.disabled = false;
+        btn.disabled = false;
+
+        btn.textContent =
+            "LICENSE VERIFIED";
+
+        download.disabled = false;
+
+        download.textContent =
+            "⚡ START AUTHORIZED EXTRACTION";
+
+        note.textContent =
+            "Authorization confirmed. Target verification is still required before extraction.";
+
+        zones.forEach(
+            z =>
+                z.classList.add(
+                    "unlocked"
+                )
+        );
+
+        if(data){
+
+            const expiry =
+                data.expires_at ||
+                data.expiresAt ||
+                data.expiry ||
+                data.expires;
+
+            if(expiry){
+
+                document.getElementById(
+                    "licenseExpiry"
+                ).textContent =
+                    "Expires: " +
+                    formatLicenseDate(
+                        expiry
+                    );
+
+                startLicenseCountdown(
+                    expiry
+                );
+            }
+        }
+
+        return;
+    }
+
+
+    licenseValid = false;
+
+
+    if(state === "error"){
+
+        badge.classList.add(
+            "error"
+        );
+
+        badgeText.textContent =
+            "INVALID / BLOCKED";
+
+        msg.classList.add(
+            "bad"
+        );
+
+    }else{
+
+        badgeText.textContent =
+            "LOCKED";
+    }
+
+
+    msg.textContent =
+        message ||
+        "License verification required.";
+
+    input.disabled = false;
+    btn.disabled = false;
+
+    btn.textContent =
+        "VERIFY LICENSE";
+
+    download.disabled = true;
+
+    download.textContent =
+        "🔒 VERIFY LICENSE TO DOWNLOAD";
+
+    note.textContent =
+        "License verification is required.";
+
+    zones.forEach(
+        z =>
+            z.classList.remove(
+                "unlocked"
+            )
+    );
+
+    document.getElementById(
+        "licenseCountdown"
+    ).textContent =
+        "—d —h —m";
+}
+
+
+/* ============================================================
+   DATE
+   ============================================================ */
+
+function formatLicenseDate(iso){
+
+    if(!iso)
+        return "—";
+
+    const d =
+        new Date(iso);
+
+    if(
+        Number.isNaN(
+            d.getTime()
+        )
+    )
+        return "—";
+
+    return d.toLocaleDateString(
+        undefined,
+        {
+            year:"numeric",
+            month:"short",
+            day:"numeric"
+        }
+    );
+}
+
+
+/* ============================================================
+   LIVE COUNTDOWN
+   ============================================================ */
+
+function startLicenseCountdown(
+    expiry
+){
+
+    const end =
+        new Date(
+            expiry
+        ).getTime();
+
+    if(
+        !Number.isFinite(end)
+    )
+        return;
+
+
+    function tick(){
+
+        const remaining =
+            end -
+            Date.now();
+
+
+        if(remaining <= 0){
+
+            clearInterval(
+                licenseCountdownTimer
+            );
+
+            licenseCountdownTimer =
+                null;
+
+            licenseValid =
+                false;
+
+            setLicenseUI(
+                "error",
+                "This license has expired."
+            );
+
+            return;
+        }
+
+
+        const totalMinutes =
+            Math.floor(
+                remaining /
+                60000
+            );
+
+        const days =
+            Math.floor(
+                totalMinutes /
+                1440
+            );
+
+        const hours =
+            Math.floor(
+                (
+                    totalMinutes %
+                    1440
+                ) /
+                60
+            );
+
+        const minutes =
+            totalMinutes %
+            60;
+
+
+        document.getElementById(
+            "licenseCountdown"
+        ).textContent =
+            `${days}d ${hours}h ${minutes}m`;
+    }
+
+
+    tick();
+
+    licenseCountdownTimer =
+        setInterval(
+            tick,
+            30000
+        );
+}
+
+
+/* ============================================================
+   LICENSE REASONS
+   ============================================================ */
+
+function licenseReason(
+    reason
+){
+
+    const map = {
+
+        invalid_key:
+            "Invalid license key.",
+
+        revoked:
+            "This license has been revoked.",
+
+        expired:
+            "This license has expired.",
+
+        device_limit_reached:
+            "This license has reached its device limit.",
+
+        device_not_bound:
+            "This browser is not bound to this license.",
+
+        rate_limited:
+            "Too many requests. Try again later.",
+
+        missing_signature:
+            "Request authentication failed.",
+
+        stale_request:
+            "Request expired. Try again.",
+
+        invalid_signature:
+            "Request authentication failed."
+    };
+
+
+    return (
+        map[reason] ||
+        reason ||
+        "License verification failed."
+    );
+}
+
+
+/* ============================================================
+   VERIFY LICENSE
+   ============================================================ */
+
+async function verifyLicense({
+    activate = false
+} = {}){
+
+    if(licenseChecking)
+        return false;
+
+
+    const input =
+        document.getElementById(
+            "licenseKey"
+        );
+
+
+    const key =
+        (
+            input.value ||
+            localStorage.getItem(
+                LICENSE_KEY_STORAGE
+            ) ||
+            ""
+        ).trim();
+
+
+    if(!key){
+
+        setLicenseUI(
+            "locked",
+            "Enter your VOXX license key first."
+        );
+
+        return false;
+    }
+
+
+    licenseChecking =
+        true;
+
+
+    setLicenseUI(
+        "checking",
+        activate
+            ? "Activating license and binding this browser…"
+            : "Validating license with server…"
+    );
+
+
+    try{
+
+        const endpoint =
+            activate
+                ? "/api/activate"
+                : "/api/validate";
+
+
+        const hwid =
+            getBrowserHWID();
+
+
+        /*
+         IMPORTANT:
+         No secret is embedded in this page.
+         Authorization must be enforced by the API.
+        */
+
+        const controller = new AbortController();
+        const requestTimer = setTimeout(() => controller.abort(), 15000);
+        let response;
+
+        try{
+            response =
+                await fetch(
+                    LICENSE_API.replace(
+                        /\/$/,
+                        ""
+                    ) +
+                    endpoint,
+                    {
+                        method:"POST",
+                        mode:"cors",
+                        headers:{
+                            "Content-Type":"application/json",
+                            "Accept":"application/json"
+                        },
+                        body:JSON.stringify({
+                            license_key:key,
+                            hwid:hwid
+                        }),
+                        signal:controller.signal
+                    }
+                );
+        }finally{
+            clearTimeout(requestTimer);
+        }
+
+
+        let data = {};
+
+
+        try{
+
+            data =
+                await response.json();
+
+        }catch(e){}
+
+
+        /*
+         FAIL CLOSED:
+         Any non-2xx response or explicit invalid
+         response is treated as invalid.
+        */
+
+        // A brand-new license is not yet device-bound. In that case the
+        // Verify button transparently performs the one-time activation,
+        // then the normal validation path remains unchanged on later loads.
+        if(
+            !activate &&
+            response.status === 403 &&
+            data.reason === "device_not_bound"
+        ){
+            return await verifyLicense({ activate:true });
+        }
+
+        if(
+            !response.ok ||
+            data.success === false ||
+            data.valid === false
+        ){
+
+            setLicenseUI(
+                "error",
+                licenseReason(
+                    data.reason
+                ),
+                data
+            );
+
+            return false;
+        }
+
+
+        /*
+         Require an explicit positive server response.
+         This prevents an arbitrary JSON response from
+         accidentally unlocking the UI.
+        */
+
+        if(
+            data.valid !== true &&
+            data.success !== true
+        ){
+
+            setLicenseUI(
+                "error",
+                "License server did not return a valid authorization result.",
+                data
+            );
+
+            return false;
+        }
+
+
+        localStorage.setItem(
+            LICENSE_KEY_STORAGE,
+            key
+        );
+
+
+        setLicenseUI(
+            "active",
+            activate
+                ? "License activated successfully."
+                : "License validated successfully.",
+            data
+        );
+
+
+        return true;
+
+
+    }catch(error){
+
+        const message =
+            error && error.name === "AbortError"
+                ? "License server timed out. Try again."
+                : "Couldn't reach the license server. Check the API URL/CORS settings.";
+
+        setLicenseUI(
+            "error",
+            message
+        );
+
+        return false;
+
+
+    }finally{
+
+        licenseChecking =
+            false;
+    }
+}
+
+
+/* ============================================================
+   ACTIVATE
+   ============================================================ */
+
+async function activateLicense(){
+
+    const input =
+        document.getElementById(
+            "licenseKey"
+        );
+
+    const key =
+        input.value.trim();
+
+    if(!key){
+
+        setLicenseUI(
+            "locked",
+            "Enter your VOXX license key first."
+        );
+
+        input.focus();
+
+        return false;
+    }
+
+    // VERIFY LICENSE should validate the key, not require activation/binding.
+    return await verifyLicense({
+        activate:false
+    });
+}
+
+
+/* ============================================================
+   RESTORE
+   ============================================================ */
+
+async function restoreLicense(){
+
+    const saved =
+        localStorage.getItem(
+            LICENSE_KEY_STORAGE
+        );
+
+
+    if(!saved){
+
+        setLicenseUI(
+            "locked",
+            "Enter your VOXX license key to unlock the downloader."
+        );
+
+        return;
+    }
+
+
+    document.getElementById(
+        "licenseKey"
+    ).value =
+        saved;
+
+
+    await verifyLicense({
+        activate:false
+    });
+}
+
+
+/* ============================================================
+   TARGET NORMALIZATION
+   ============================================================ */
+
+function normalizeUrl(
+    value
+){
+
+    let raw =
+        (value || "").trim();
+
+
+    if(!raw)
+        return null;
+
+
+    if(
+        !/^https?:\/\//i.test(
+            raw
+        )
+    ){
+
+        raw =
+            "https://" +
+            raw;
+    }
+
+
+    try{
+
+        return new URL(
+            raw
+        );
+
+    }catch(e){
+
+        return null;
+    }
+}
+
+
+/* ============================================================
+   WEBSITE VERIFICATION UI
+   ============================================================ */
+
+function setVerifyState(
+    state,
+    text
+){
+
+    const el =
+        document.getElementById(
+            "verifyState"
+        );
+
+    const dot =
+        document.getElementById(
+            "verifyDot"
+        );
+
+    el.className =
+        "verify-state " +
+        state;
+
+    dot.className =
+        "verify-dot";
+
+    if(state){
+
+        dot.classList.add(
+            state === "good"
+                ? "good"
+                : state === "warn"
+                    ? "warn"
+                    : state === "bad"
+                        ? "bad"
+                        : ""
+        );
+    }
+
+    document.getElementById(
+        "verifyStateText"
+    ).textContent =
+        text;
+}
+
+
+/* ============================================================
+   WEBSITE VERIFICATION
+   ============================================================ */
+
+async function verifyWebsite(){
+
+    if(!licenseValid){
+
+        setVerifyState(
+            "bad",
+            "LICENSE REQUIRED"
+        );
+
+        return false;
+    }
+
+
+    const input =
+        document.getElementById(
+            "url"
+        );
+
+
+    const parsed =
+        normalizeUrl(
+            input.value
+        );
+
+
+    if(!parsed){
+
+        setVerifyState(
+            "bad",
+            "INVALID URL"
+        );
+
+        await logMessage(
+            "[WEB] ✕ Invalid URL syntax."
+        );
+
+        return false;
+    }
+
+
+    const target =
+        parsed.href;
+
+
+    verifiedTarget =
+        target;
+
+
+    document.getElementById(
+        "verifyProtocol"
+    ).textContent =
+        parsed.protocol
+            .replace(":","")
+            .toUpperCase();
+
+
+    document.getElementById(
+        "verifyDomain"
+    ).textContent =
+        parsed.hostname;
+
+
+    document.getElementById(
+        "verifyHost"
+    ).textContent =
+        parsed.host;
+
+
+    document.getElementById(
+        "previewUrl"
+    ).value =
+        target;
+
+
+    setVerifyState(
+        "working",
+        "VERIFYING"
+    );
+
+
+    await logMessage(
+        "[WEB] ─────────────────────────────"
+    );
+
+    await logMessage(
+        "[WEB] Target received: " +
+        target
+    );
+
+    await logMessage(
+        "[WEB] Protocol: " +
+        parsed.protocol
+    );
+
+    await logMessage(
+        "[WEB] Host: " +
+        parsed.host
+    );
+
+    await logMessage(
+        "[WEB] Beginning browser-side reachability test…"
+    );
+
+
+    const started =
+        performance.now();
+
+
+    try{
+
+        /*
+         A no-cors request can tell us that a request
+         completed, but does NOT expose the remote
+         HTTP status or headers.
+        */
+
+        const response =
+            await fetch(
+                target,
+                {
+                    method:"GET",
+                    mode:"no-cors",
+                    cache:"no-store"
+                }
+            );
+
+
+        const elapsed =
+            Math.round(
+                performance.now() -
+                started
+            );
+
+
+        document.getElementById(
+            "verifyLatency"
+        ).textContent =
+            elapsed +
+            " ms";
+
+
+        document.getElementById(
+            "verifyHttp"
+        ).textContent =
+            response.type === "opaque"
+                ? "OPAQUE"
+                : response.status;
+
+
+        setVerifyState(
+            "good",
+            "REACHABLE"
+        );
+
+
+        await logMessage(
+            "[WEB] ✓ Network request completed."
+        );
+
+        await logMessage(
+            "[WEB] ✓ Browser latency: " +
+            elapsed +
+            " ms"
+        );
+
+
+        await preparePreview(
+            target
+        );
+
+
+        return true;
+
+
+    }catch(error){
+
+        const elapsed =
+            Math.round(
+                performance.now() -
+                started
+            );
+
+
+        document.getElementById(
+            "verifyLatency"
+        ).textContent =
+            elapsed +
+            " ms";
+
+
+        document.getElementById(
+            "verifyHttp"
+        ).textContent =
+            "FAILED";
+
+
+        setVerifyState(
+            "bad",
+            "UNREACHABLE"
+        );
+
+
+        document.getElementById(
+            "verifyPreview"
+        ).textContent =
+            "UNAVAILABLE";
+
+
+        await logMessage(
+            "[WEB] ✕ Reachability test failed."
+        );
+
+        await logMessage(
+            "[WEB] Reason: " +
+            (
+                error.message ||
+                "Network error"
+            )
+        );
+
+
+        return false;
+    }
+}
+
+
+/* ============================================================
+   PREVIEW
+   ============================================================ */
+
+async function preparePreview(
+    target
+){
+
+    const preview =
+        document.getElementById(
+            "preview"
+        );
+
+
+    document.getElementById(
+        "previewUrl"
+    ).value =
+        target;
+
+
+    document.getElementById(
+        "previewStatusText"
+    ).textContent =
+        "LOADING TARGET";
+
+
+    document.getElementById(
+        "previewStatusDot"
+    ).className =
+        "preview-status-dot warn";
+
+
+    await logMessage(
+        "[PREVIEW] Loading sandboxed target…"
+    );
+
+
+    /*
+     Direct iframe navigation is intentionally used here.
+     Sites that send X-Frame-Options or restrictive CSP
+     may refuse embedding. That is a browser security
+     policy and cannot be bypassed by frontend JavaScript.
+    */
+
+    preview.src =
+        target;
+
+
+    document.getElementById(
+        "verifyPreview"
+    ).textContent =
+        "LOADING";
+
+
+    return new Promise(
+        resolve => {
+
+            let finished =
+                false;
+
+
+            const finish =
+                (ok) => {
+
+                    if(finished)
+                        return;
+
+                    finished =
+                        true;
+
+
+                    if(ok){
+
+                        document.getElementById(
+                            "previewStatusText"
+                        ).textContent =
+                            "PREVIEW LOADED";
+
+                        document.getElementById(
+                            "previewStatusDot"
+                        ).className =
+                            "preview-status-dot good";
+
+                        document.getElementById(
+                            "verifyPreview"
+                        ).textContent =
+                            "AVAILABLE";
+
+
+                        logMessage(
+                            "[PREVIEW] ✓ Preview frame loaded."
+                        );
+
+                    }else{
+
+                        document.getElementById(
+                            "previewStatusText"
+                        ).textContent =
+                            "EMBED MAY BE BLOCKED";
+
+                        document.getElementById(
+                            "previewStatusDot"
+                        ).className =
+                            "preview-status-dot warn";
+
+                        document.getElementById(
+                            "verifyPreview"
+                        ).textContent =
+                            "RESTRICTED";
+
+
+                        logMessage(
+                            "[PREVIEW] ! Target may restrict iframe embedding."
+                        );
+                    }
+
+
+                    resolve(ok);
+                };
+
+
+            preview.onload =
+                () =>
+                    finish(true);
+
+
+            preview.onerror =
+                () =>
+                    finish(false);
+
+
+            setTimeout(
+                () =>
+                    finish(true),
+                6000
+            );
+        }
+    );
+}
+
+
+/* ============================================================
+   PREVIEW CONTROLS
+   ============================================================ */
+
+document.getElementById(
+    "previewReload"
+).addEventListener(
+    "click",
+    async () => {
+
+        const url =
+            document.getElementById(
+                "previewUrl"
+            ).value;
+
+
+        if(!url)
+            return;
+
+
+        const preview =
+            document.getElementById(
+                "preview"
+            );
+
+
+        preview.src =
+            "about:blank";
+
+
+        setTimeout(
+            () => {
+
+                preview.src =
+                    url;
+
+            },
+            80
+        );
+
+
+        await logMessage(
+            "[PREVIEW] ↻ Reload requested."
+        );
+    }
+);
+
+
+document.getElementById(
+    "previewOpen"
+).addEventListener(
+    "click",
+    () => {
+
+        const url =
+            document.getElementById(
+                "previewUrl"
+            ).value;
+
+
+        if(!url)
+            return;
+
+
+        window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
+    }
+);
+
+
+/* ============================================================
+   TARGET INPUT
+   ============================================================ */
+
+document.getElementById(
+    "url"
+).addEventListener(
+    "change",
+    () => {
+
+        if(
+            !licenseValid
+        )
+            return;
+
+
+        verifyWebsite();
+    }
+);
+
+
+document.getElementById(
+    "url"
+).addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key === "Enter"
+        ){
+
+            event.preventDefault();
+
+            verifyWebsite();
+        }
+    }
+);
+
+
+/* ============================================================
+   RESOURCE CONTROLS
+   ============================================================ */
+
+const allChk =
+    document.getElementById(
+        "allChk"
+    );
+
+const resChks =
+    document.querySelectorAll(
+        ".resChk"
+    );
+
+
+allChk.addEventListener(
+    "change",
+    () => {
+
+        resChks.forEach(
+            cb =>
+                cb.checked =
+                    allChk.checked
+        );
+    }
+);
+
+
+resChks.forEach(
+    cb => {
+
+        cb.addEventListener(
+            "change",
+            () => {
+
+                const allChecked =
+                    [...resChks]
+                    .every(
+                        c =>
+                            c.checked
+                    );
+
+                const noneChecked =
+                    [...resChks]
+                    .every(
+                        c =>
+                            !c.checked
+                    );
+
+                allChk.checked =
+                    allChecked;
+
+                allChk.indeterminate =
+                    !allChecked &&
+                    !noneChecked;
+            }
+        );
+    }
+);
+
+
+/* ============================================================
+   TERMINAL LOGGING
+   ============================================================ */
+
+async function logMessage(
+    text,
+    delay = 1
+){
+
+    const log =
+        document.getElementById(
+            "log"
+        );
+
+
+    const timestamp =
+        new Date()
+            .toLocaleTimeString(
+                undefined,
+                {
+                    hour12:false
+                }
+            );
+
+
+    const line =
+        `[${timestamp}] ${text}`;
+
+
+    log.value +=
+        line +
+        "\n";
+
+
+    log.scrollTop =
+        log.scrollHeight;
+
+
+    if(delay > 0){
+
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    delay
+                )
+        );
+    }
+}
+
+
+/* ============================================================
+   PROGRESS
+   ============================================================ */
+
+function updateProgress(
+    value
+){
+
+    const safe =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                value
+            )
+        );
+
+
+    document.getElementById(
+        "progressBar"
+    ).style.width =
+        safe +
+        "%";
+
+
+    document.getElementById(
+        "progressText"
+    ).textContent =
+        Math.round(
+            safe
+        ) +
+        "%";
+}
+
+
+/* ============================================================
+   DOWNLOAD / EXTRACTION
+   ============================================================ */
+
+async function downloadSite(){
+
+    if(!licenseValid){
+
+        setLicenseUI(
+            "locked",
+            "Verify your VOXX license before downloading."
+        );
+
+        document.getElementById(
+            "licenseKey"
+        ).focus();
+
+        return;
+    }
+
+
+    /*
+     Always revalidate with the server before extraction.
+     This prevents a stale browser-side state from being
+     enough to unlock the operation.
+    */
+
+    const stillValid =
+        await verifyLicense({
+            activate:false
+        });
+
+
+    if(!stillValid)
+        return;
+
+
+    const verified =
+        await verifyWebsite();
+
+
+    if(!verified){
+
+        await logMessage(
+            "[ENGINE] ✕ Website verification failed."
+        );
+
+        return;
+    }
+
+
+    const parsed =
+        normalizeUrl(
+            document.getElementById(
+                "url"
+            ).value
+        );
+
+
+    if(!parsed){
+
+        await logMessage(
+            "[ENGINE] ✕ Invalid target URL."
+        );
+
+        return;
+    }
+
+
+    const targetUrl =
+        parsed.href;
+
+
+    const zipCustom =
+        document.getElementById(
+            "zipName"
+        ).value.trim();
+
+
+    const preview =
+        document.getElementById(
+            "preview"
+        );
+
+
+    const log =
+        document.getElementById(
+            "log"
+        );
+
+
+    log.value =
+        "";
+
+
+    updateProgress(
+        0
+    );
+
+
+    document
+        .querySelectorAll(
+            ".resChk"
+        )
+        .forEach(
+            cb =>
+                cb.disabled =
+                true
+        );
+
+
+    const htmlChk =
+        document.getElementById(
+            "htmlChk"
+        ).checked;
+
+
+    const cssChk =
+        document.getElementById(
+            "cssChk"
+        ).checked;
+
+
+    const jsChk =
+        document.getElementById(
+            "jsChk"
+        ).checked;
+
+
+    const imgChk =
+        document.getElementById(
+            "imgChk"
+        ).checked;
+
+
+    const fontChk =
+        document.getElementById(
+            "fontChk"
+        ).checked;
+
+
+    try{
+
+        await logMessage(
+            "╔════════════════════════════════════════╗"
+        );
+
+        await logMessage(
+            "║       YORVOXX NEXUS ENGINE             ║"
+        );
+
+        await logMessage(
+            "╚════════════════════════════════════════╝"
+        );
+
+        await logMessage(
+            "[AUTH] ✓ SERVER AUTHORIZATION CONFIRMED"
+        );
+
+        await logMessage(
+            "[AUTH] ✓ LICENSE STATUS: VALID"
+        );
+
+        await logMessage(
+            "[TARGET] " +
+            targetUrl
+        );
+
+        await logMessage(
+            "[TARGET] Protocol: " +
+            parsed.protocol
+        );
+
+        await logMessage(
+            "[TARGET] Host: " +
+            parsed.host
+        );
+
+        updateProgress(
+            5
+        );
+
+
+        await logMessage(
+            "[WEB] Running target verification…"
+        );
+
+
+        const started =
+            performance.now();
+
+
+        /*
+         The extraction itself requires CORS permission.
+         Unlike no-cors verification, this request must
+         expose the response body to JavaScript.
+        */
+
+        const response =
+            await fetch(
+                targetUrl,
+                {
+                    method:"GET",
+                    mode:"cors",
+                    cache:"no-store"
+                }
+            );
+
+
+        const elapsed =
+            Math.round(
+                performance.now() -
+                started
+            );
+
+
+        await logMessage(
+            "[WEB] ✓ HTTP response received in " +
+            elapsed +
+            " ms"
+        );
+
+
+        if(!response.ok){
+
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+
+        updateProgress(
+            12
+        );
+
+
+        await logMessage(
+            "[HTML] Reading document body…"
+        );
+
+
+        const htmlText =
+            await response.text();
+
+
+        if(!htmlText){
+
+            throw new Error(
+                "Empty HTML response"
+            );
+        }
+
+
+        verifiedHtml =
+            htmlText;
+
+
+        /*
+         srcdoc is used so the fetched HTML can be
+         displayed without directly granting the page
+         access to the parent application.
+        */
+
+        preview.srcdoc =
+            htmlText;
+
+
+        await logMessage(
+            "[HTML] ✓ Document loaded: " +
+            htmlText.length +
+            " bytes"
+        );
+
+
+        updateProgress(
+            18
+        );
+
+
+        const parser =
+            new DOMParser();
+
+
+        const doc =
+            parser.parseFromString(
+                htmlText,
+                "text/html"
+            );
+
+
+        const title =
+            doc.querySelector(
+                "title"
+            );
+
+
+        document.getElementById(
+            "verifyTitle"
+        ).textContent =
+            title
+                ? title.textContent.trim()
+                : "UNTITLED";
+
+
+        updateProgress(
+            21
+        );
+
+
+        const zip =
+            new JSZip();
+
+
+        if(htmlChk){
+
+            zip.file(
+                "index.html",
+                htmlText
+            );
+
+            await logMessage(
+                "[HTML] ✓ index.html added"
+            );
+        }
+
+
+        let resources = [];
+
+
+        if(cssChk){
+
+            resources.push(
+                ...[
+                    ...doc.querySelectorAll(
+                        "link[rel='stylesheet']"
+                    )
+                ].map(
+                    link =>
+                        link.href
+                )
+            );
+
+
+            await logMessage(
+                "[CSS] Stylesheet references scanned"
+            );
+        }
+
+
+        if(jsChk){
+
+            resources.push(
+                ...[
+                    ...doc.querySelectorAll(
+                        "script[src]"
+                    )
+                ].map(
+                    script =>
+                        script.src
+                )
+            );
+
+
+            await logMessage(
+                "[JS] Script references scanned"
+            );
+        }
+
+
+        if(imgChk){
+
+            resources.push(
+                ...[
+                    ...doc.querySelectorAll(
+                        "img"
+                    )
+                ].map(
+                    img =>
+                        img.src
+                )
+            );
+
+
+            await logMessage(
+                "[IMG] Image references scanned"
+            );
+        }
+
+
+        if(fontChk){
+
+            resources.push(
+                ...[
+                    ...doc.querySelectorAll(
+                        "link"
+                    )
+                ]
+                .map(
+                    link =>
+                        link.href
+                )
+                .filter(
+                    href =>
+                        /\.(woff2?|ttf|otf)(\?|$)/i
+                        .test(
+                            href
+                        )
+                )
+            );
+
+
+            await logMessage(
+                "[FONT] Font references scanned"
+            );
+        }
+
+
+        resources =
+            [
+                ...new Set(
+                    resources
+                )
+            ]
+            .filter(
+                Boolean
+            )
+            .filter(
+                url =>
+                    /^https?:\/\//i.test(
+                        url
+                    )
+            );
+
+
+        await logMessage(
+            "[SCAN] Unique external resources: " +
+            resources.length
+        );
+
+
+        updateProgress(
+            24
+        );
+
+
+        if(
+            resources.length === 0
+        ){
+
+            await logMessage(
+                "[SCAN] No external resources found."
+            );
+        }
+
+
+        for(
+            let i = 0;
+            i < resources.length;
+            i++
+        ){
+
+            const resource =
+                resources[i];
+
+
+            try{
+
+                await logMessage(
+                    "[FETCH] " +
+                    resource
+                );
+
+
+                const resourceStarted =
+                    performance.now();
+
+
+                const resourceResponse =
+                    await fetch(
+                        resource,
+                        {
+                            mode:"cors",
+                            cache:"no-store"
+                        }
+                    );
+
+
+                const resourceTime =
+                    Math.round(
+                        performance.now() -
+                        resourceStarted
+                    );
+
+
+                if(
+                    !resourceResponse.ok
+                ){
+
+                    throw new Error(
+                        "HTTP " +
+                        resourceResponse.status
+                    );
+                }
+
+
+                const blob =
+                    await resourceResponse.blob();
+
+
+                let filename =
+                    resource
+                        .split("/")
+                        .pop()
+                        .split("?")[0]
+                        .replace(
+                            /[^a-zA-Z0-9._-]/g,
+                            "_"
+                        ) ||
+                    "resource";
+
+
+                zip.file(
+                    "assets/" +
+                    filename,
+                    blob
+                );
+
+
+                await logMessage(
+                    "[CACHE] ✓ " +
+                    filename +
+                    " (" +
+                    blob.size +
+                    " bytes, " +
+                    resourceTime +
+                    " ms)"
+                );
+
+
+            }catch(error){
+
+                await logMessage(
+                    "[CACHE] ! FAILED: " +
+                    (
+                        error.message ||
+                        "request failed"
+                    )
+                );
+            }
+
+
+            const percent =
+                24 +
+                (
+                    (
+                        i + 1
+                    ) /
+                    Math.max(
+                        resources.length,
+                        1
+                    )
+                ) *
+                62;
+
+
+            updateProgress(
+                percent
+            );
+        }
+
+
+        await logMessage(
+            "[BUILD] Preparing ZIP archive…"
+        );
+
+
+        updateProgress(
+            88
+        );
+
+
+        const content =
+            await zip.generateAsync(
+                {
+                    type:"blob",
+                    compression:"DEFLATE",
+                    compressionOptions:{
+                        level:6
+                    }
+                },
+                metadata => {
+
+                    updateProgress(
+                        88 +
+                        metadata.percent *
+                        .08
+                    );
+                }
+            );
+
+
+        updateProgress(
+            97
+        );
+
+
+        const domain =
+            parsed.hostname
+                .replace(
+                    /[^a-zA-Z0-9.-]/g,
+                    "_"
+                );
+
+
+        const zipName =
+            zipCustom
+                ? `YORVOXX-${zipCustom}.zip`
+                : `YORVOXX-${domain}.zip`;
+
+
+        await logMessage(
+            "[BUILD] ✓ Archive generated"
+        );
+
+
+        await logMessage(
+            "[BUILD] Size: " +
+            content.size +
+            " bytes"
+        );
+
+
+        const downloadUrl =
+            URL.createObjectURL(
+                content
+            );
+
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+
+        link.href =
+            downloadUrl;
+
+
+        link.download =
+            zipName;
+
+
+        document.body.appendChild(
+            link
+        );
+
+
+        link.click();
+
+
+        link.remove();
+
+
+        setTimeout(
+            () =>
+                URL.revokeObjectURL(
+                    downloadUrl
+                ),
+            1000
+        );
+
+
+        updateProgress(
+            100
+        );
+
+
+        await logMessage(
+            "[DOWNLOAD] ✓ " +
+            zipName
+        );
+
+
+        await logMessage(
+            "[ENGINE] ✓ EXTRACTION COMPLETE"
+        );
+
+
+        await logMessage(
+            "[ENGINE] ✓ NEXUS SESSION CLOSED"
+        );
+
+
+    }catch(error){
+
+        updateProgress(
+            0
+        );
+
+
+        await logMessage(
+            "[ENGINE] ✕ ERROR: " +
+            (
+                error.message ||
+                "Unknown extraction error"
+            )
+        );
+
+
+        await logMessage(
+            "[ENGINE] Extraction stopped safely."
+        );
+
+
+    }finally{
+
+        document
+            .querySelectorAll(
+                ".resChk"
+            )
+            .forEach(
+                cb =>
+                    cb.disabled =
+                    false
+            );
+    }
+}
+
+
+/* ============================================================
+   POINTER AMBIENT LIGHT
+   ============================================================ */
+
+document.addEventListener(
+    "pointermove",
+    event => {
+
+        const x =
+            event.clientX /
+            window.innerWidth *
+            100;
+
+
+        const y =
+            event.clientY /
+            window.innerHeight *
+            100;
+
+
+        document.documentElement
+            .style
+            .setProperty(
+                "--mx",
+                x + "%"
+            );
+
+
+        document.documentElement
+            .style
+            .setProperty(
+                "--my",
+                y + "%"
+            );
+    }
+);
+
+
+/* ============================================================
+   LIGHTWEIGHT 3D CARD EFFECT
+   ============================================================ */
+
+if(
+    !window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+    ).matches
+){
+
+    document
+        .querySelectorAll(
+            ".card"
+        )
+        .forEach(
+            card => {
+
+                card.addEventListener(
+                    "pointermove",
+                    event => {
+
+                        if(
+                            window.innerWidth <
+                            760
+                        )
+                            return;
+
+
+                        const rect =
+                            card.getBoundingClientRect();
+
+
+                        const x =
+                            (
+                                event.clientX -
+                                rect.left
+                            ) /
+                            rect.width;
+
+
+                        const y =
+                            (
+                                event.clientY -
+                                rect.top
+                            ) /
+                            rect.height;
+
+
+                        const rotateY =
+                            (
+                                x -
+                                .5
+                            ) *
+                            2.2;
+
+
+                        const rotateX =
+                            (
+                                .5 -
+                                y
+                            ) *
+                            2.2;
+
+
+                        card.style.transform =
+                            `
+                            perspective(1200px)
+                            rotateX(${rotateX}deg)
+                            rotateY(${rotateY}deg)
+                            translateY(-2px)
+                            `;
+                    }
+                );
+
+
+                card.addEventListener(
+                    "pointerleave",
+                    () => {
+
+                        card.style.transform =
+                            "";
+                    }
+                );
+            }
+        );
+}
+
+
+/* ============================================================
+   LICENSE EVENTS
+   ============================================================ */
+
+document.getElementById(
+    "activateBtn"
+).addEventListener(
+    "click",
+    activateLicense
+);
+
+
+document.getElementById(
+    "licenseKey"
+).addEventListener(
+    "keydown",
+    event => {
+
+        if(
+            event.key === "Enter"
+        ){
+
+            event.preventDefault();
+
+            activateLicense();
+        }
+    }
+);
+
+
+document.getElementById(
+    "licenseKey"
+).addEventListener(
+    "input",
+    () => {
+
+        if(
+            licenseValid
+        )
+            return;
+
+
+        const badge =
+            document.getElementById(
+                "licenseBadge"
+            );
+
+
+        badge.classList.remove(
+            "error"
+        );
+
+
+        document.getElementById(
+            "licenseBadgeText"
+        ).textContent =
+            "LOCKED";
+    }
+);
+
+
+/* ============================================================
+   INITIALIZE
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
+
+        await logMessage(
+            "[SYSTEM] YORVOXX NEXUS initialized."
+        );
+
+        await logMessage(
+            "[SYSTEM] License authorization required."
+        );
+
+        await logMessage(
+            "[SYSTEM] Website verification ready."
+        );
+
+        await logMessage(
+            "[SYSTEM] Extraction engine standing by."
+        );
+
+
+        restoreLicense();
+    }
+);
+
+</script>
+
+</body>
+</html>
