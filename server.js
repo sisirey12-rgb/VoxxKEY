@@ -1,124 +1,88 @@
-require("dotenv").config();
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
-const express = require("express");
-const cors = require("cors");
+const { init } = require('./db');
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+const licenseRoutes = require('./routes/license');
+const resellerRoutes = require('./routes/reseller');
 
-const {
-  init
-} = require("./db");
+const app = express();
 
-const licenseRoutes =
-  require("./routes/license");
+app.set('trust proxy', 1);
 
-const adminRoutes =
-  require("./routes/admin");
+const allowedOrigins = [
+  'https://admicontrolvoxx.netlify.app',
+  'https://getinstafollowersinstant.netlify.app',
+  'https://voxxresellerdashboard.netlify.app',
+];
 
-const resellerRoutes =
-  require("./routes/reseller");
+app.use(cors({
+  origin: function (origin, callback) {
+    // origin is undefined for same-origin/non-browser requests (e.g. curl) — allow those too
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS: ' + origin));
+    }
+  },
+  credentials: true,
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));;
+app.use(cookieParser());
+app.use(express.json());
+app.use((req, res, next) => {
+  console.log("================================");
+  console.log(req.method, req.originalUrl);
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
+  next();
+});
 
-const app =
-  express();
+app.get("/debug-ip", (req, res) => {
+  res.json({
+    ip: req.ip,
+    ips: req.ips,
+    xForwardedFor: req.headers["x-forwarded-for"],
+    remoteAddress: req.socket.remoteAddress
+  });
+});
 
-app.set(
-  "trust proxy",
-  1
-);
+app.get('/', (req, res) => {
+  res.json({ ok: true, service: 'voxx-license-server' });
+});
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true
-  })
-);
+app.use('/admin', authRoutes);
+app.use('/admin', adminRoutes);
 
-app.use(
-  express.json({
-    limit: "1mb"
-  })
-);
+app.use('/api', licenseRoutes);
+app.use('/reseller', resellerRoutes);
 
-app.use(
-  express.urlencoded({
-    extended: true
-  })
-);
+app.use((err, req, res, next) => {
+  console.error('Unhandled route error:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'server_error' });
+});
 
-app.get(
-  "/",
-  (req, res) => {
-    res.json({
-      ok: true,
-      service:
-        "voxx-license-server"
-    });
-  }
-);
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION (server stayed up):', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION (server stayed up):', err);
+});
 
-app.get(
-  "/health",
-  (req, res) => {
-    res.json({
-      ok: true,
-      service:
-        "voxx-license-server"
-    });
-  }
-);
-
-app.use(
-  "/api",
-  licenseRoutes
-);
-
-app.use(
-  "/admin",
-  adminRoutes
-);
-
-app.use(
-  "/reseller",
-  resellerRoutes
-);
-
-app.use(
-  (err, req, res, next) => {
-
-    console.error(
-      "[SERVER ERROR]",
-      err
-    );
-
-    res.status(500).json({
-      success: false,
-      error:
-        "Internal server error"
-    });
-  }
-);
-
-const PORT =
-  process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 init()
   .then(() => {
-
-    app.listen(
-      PORT,
-      "0.0.0.0",
-      () => {
-        console.log(
-          `Server running on port ${PORT}`
-        );
-      }
-    );
-
+    app.listen(PORT, () => {
+      console.log(`voxx-license-server listening on port ${PORT}`);
+    });
   })
   .catch(err => {
-
-    console.error(
-      "Database initialization failed:",
-      err
-    );
-
+    console.error('Failed to initialize database:', err);
     process.exit(1);
   });
