@@ -17,28 +17,26 @@ const router = express.Router();
 
 /*
 ============================================================
-PUBLIC VISITOR NOTIFICATION ROUTES
+PUBLIC VISITOR ROUTES
 ============================================================
 
-These routes MUST be before router.use(requireSession)
-because visitors are not logged into the admin dashboard.
+These MUST remain before router.use(requireSession).
 
-Telegram credentials stay on the server in environment variables:
+Required Render environment variables:
 
-TELEGRAM_BOT_TOKEN
-TELEGRAM_CHAT_ID
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
 
-GPS is accepted only when the browser/user explicitly
-sends consent: true.
+The browser must explicitly grant GPS permission before
+/admin/gps is called.
 */
 
 
-// ------------------------------------------------------------
-// Get visitor public IP
-// ------------------------------------------------------------
+// ============================================================
+// Visitor IP
+// ============================================================
+
 function getVisitorIp(req) {
-  // server.js has app.set('trust proxy', 1)
-  // so req.ip is the preferred value behind Render's proxy.
   return (
     req.ip ||
     req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -48,21 +46,25 @@ function getVisitorIp(req) {
 }
 
 
-// ------------------------------------------------------------
-// GeoIP lookup
-// ------------------------------------------------------------
-async function getGeoIP(ip) {
-  if (!ip || ip === 'unknown') return null;
+// ============================================================
+// GeoIP
+// ============================================================
 
-  // Ignore local/private addresses.
-  const privateIp =
+async function getGeoIP(ip) {
+  if (!ip || ip === 'unknown') {
+    return null;
+  }
+
+  const isPrivate =
     ip === '::1' ||
     ip === '127.0.0.1' ||
     ip.startsWith('10.') ||
     ip.startsWith('192.168.') ||
     /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip);
 
-  if (privateIp) return null;
+  if (isPrivate) {
+    return null;
+  }
 
   try {
     const response = await axios.get(
@@ -89,9 +91,10 @@ async function getGeoIP(ip) {
 }
 
 
-// ------------------------------------------------------------
-// Send Telegram notification
-// ------------------------------------------------------------
+// ============================================================
+// Telegram
+// ============================================================
+
 async function sendTelegram(message) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -115,6 +118,8 @@ async function sendTelegram(message) {
         timeout: 8000
       }
     );
+
+    console.log('Telegram visitor notification sent.');
   } catch (error) {
     console.error(
       'Telegram sendMessage failed:',
@@ -124,10 +129,11 @@ async function sendTelegram(message) {
 }
 
 
-// ------------------------------------------------------------
-// PriceVox visitor opened the page
+// ============================================================
+// PRICEVOX OPEN
 // POST /admin/ping
-// ------------------------------------------------------------
+// ============================================================
+
 router.post('/ping', asyncHandler(async (req, res) => {
   const ip = getVisitorIp(req);
   const geo = await getGeoIP(ip);
@@ -156,32 +162,26 @@ router.post('/ping', asyncHandler(async (req, res) => {
     `🕐 Time: ${new Date().toISOString()}`
   ].join('\n');
 
-  // Respond to the website immediately.
+  // Website gets an immediate response.
   res.json({
     success: true
   });
 
-  // Telegram failure must not make the visitor request fail.
+  // Telegram notification happens after the response.
   sendTelegram(message).catch(error => {
-    console.error('Visitor Telegram notification error:', error.message);
+    console.error(
+      'Visitor Telegram notification error:',
+      error.message
+    );
   });
 }));
 
 
-// ------------------------------------------------------------
-// GPS report
+// ============================================================
+// GPS
 // POST /admin/gps
-//
-// The frontend MUST send:
-// {
-//   latitude,
-//   longitude,
-//   accuracy,
-//   consent: true
-// }
-//
-// No GPS is accepted without explicit consent.
-// ------------------------------------------------------------
+// ============================================================
+
 router.post('/gps', asyncHandler(async (req, res) => {
   const {
     latitude,
@@ -190,7 +190,7 @@ router.post('/gps', asyncHandler(async (req, res) => {
     consent
   } = req.body || {};
 
-  // Explicit consent is required.
+  // Explicit consent is mandatory.
   if (consent !== true) {
     return res.status(400).json({
       error: 'explicit GPS consent required'
@@ -207,7 +207,12 @@ router.post('/gps', asyncHandler(async (req, res) => {
     });
   }
 
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+  if (
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
     return res.status(400).json({
       error: 'invalid GPS coordinates'
     });
@@ -234,31 +239,35 @@ router.post('/gps', asyncHandler(async (req, res) => {
   });
 
   sendTelegram(message).catch(error => {
-    console.error('GPS Telegram notification error:', error.message);
+    console.error(
+      'GPS Telegram notification error:',
+      error.message
+    );
   });
 });
 
 
-/*
-============================================================
-ADMIN ROUTES
-============================================================
-
-Everything below requires a valid admin session.
-DO NOT move router.use(requireSession) above /ping or /gps.
-*/
+// ============================================================
+// EVERYTHING BELOW REQUIRES ADMIN SESSION
+// ============================================================
 
 router.use(requireSession);
 
 
-// ------------------------------------------------------------
+// ============================================================
+// LICENSE KEYS
+// ============================================================
+
 // List all keys
-// ------------------------------------------------------------
 router.get('/keys', asyncHandler(async (req, res) => {
   const result = await db.execute(`
-    SELECT l.*, r.name AS reseller_name, r.status AS reseller_status
+    SELECT
+      l.*,
+      r.name AS reseller_name,
+      r.status AS reseller_status
     FROM licenses l
-    LEFT JOIN resellers r ON r.id = l.reseller_id
+    LEFT JOIN resellers r
+      ON r.id = l.reseller_id
     ORDER BY l.created_at DESC
   `);
 
@@ -273,9 +282,7 @@ router.get('/keys', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Generate a new key
-// ------------------------------------------------------------
 router.post('/generate-key', asyncHandler(async (req, res) => {
   const {
     validity_days,
@@ -291,9 +298,14 @@ router.post('/generate-key', asyncHandler(async (req, res) => {
   const customKey =
     (custom_key || legacyKey || '').trim() || null;
 
-  const totalDays = Number(validity_days ?? days) || 0;
-  const totalHours = Number(hours) || 0;
-  const totalMinutes = Number(minutes) || 0;
+  const totalDays =
+    Number(validity_days ?? days) || 0;
+
+  const totalHours =
+    Number(hours) || 0;
+
+  const totalMinutes =
+    Number(minutes) || 0;
 
   const totalMs =
     totalDays * 86400000 +
@@ -302,7 +314,8 @@ router.post('/generate-key', asyncHandler(async (req, res) => {
 
   if (!Number.isFinite(totalMs) || totalMs <= 0) {
     return res.status(400).json({
-      error: 'provide a positive duration via days, hours, and/or minutes'
+      error:
+        'provide a positive duration via days, hours, and/or minutes'
     });
   }
 
@@ -317,7 +330,8 @@ router.post('/generate-key', asyncHandler(async (req, res) => {
 
   if (customKey) {
     const existing = await db.execute({
-      sql: 'SELECT 1 FROM licenses WHERE license_key = ?',
+      sql:
+        'SELECT 1 FROM licenses WHERE license_key = ?',
       args: [customKey]
     });
 
@@ -376,9 +390,7 @@ router.post('/generate-key', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Reset HWID
-// ------------------------------------------------------------
 router.post('/reset-hwid', asyncHandler(async (req, res) => {
   const { license_key } = req.body || {};
 
@@ -389,7 +401,8 @@ router.post('/reset-hwid', asyncHandler(async (req, res) => {
   }
 
   const result = await db.execute({
-    sql: 'SELECT * FROM licenses WHERE license_key = ?',
+    sql:
+      'SELECT * FROM licenses WHERE license_key = ?',
     args: [license_key]
   });
 
@@ -402,12 +415,14 @@ router.post('/reset-hwid', asyncHandler(async (req, res) => {
   }
 
   await db.execute({
-    sql: 'UPDATE licenses SET device_hwid = NULL WHERE license_key = ?',
+    sql:
+      'UPDATE licenses SET device_hwid = NULL WHERE license_key = ?',
     args: [license_key]
   });
 
   await db.execute({
-    sql: 'DELETE FROM license_devices WHERE license_key = ?',
+    sql:
+      'DELETE FROM license_devices WHERE license_key = ?',
     args: [license_key]
   });
 
@@ -417,9 +432,7 @@ router.post('/reset-hwid', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Extend expiry
-// ------------------------------------------------------------
 router.post('/extend', asyncHandler(async (req, res) => {
   const {
     license_key,
@@ -445,12 +458,14 @@ router.post('/extend', asyncHandler(async (req, res) => {
 
   if (!Number.isFinite(totalMs) || totalMs <= 0) {
     return res.status(400).json({
-      error: 'provide a positive duration via days, hours, and/or minutes'
+      error:
+        'provide a positive duration via days, hours, and/or minutes'
     });
   }
 
   const result = await db.execute({
-    sql: 'SELECT * FROM licenses WHERE license_key = ?',
+    sql:
+      'SELECT * FROM licenses WHERE license_key = ?',
     args: [license_key]
   });
 
@@ -472,8 +487,12 @@ router.post('/extend', asyncHandler(async (req, res) => {
   );
 
   await db.execute({
-    sql: 'UPDATE licenses SET expires_at = ? WHERE license_key = ?',
-    args: [newExpiry, license_key]
+    sql:
+      'UPDATE licenses SET expires_at = ? WHERE license_key = ?',
+    args: [
+      newExpiry,
+      license_key
+    ]
   });
 
   res.json({
@@ -483,9 +502,7 @@ router.post('/extend', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Regenerate key
-// ------------------------------------------------------------
 router.post('/regenerate', asyncHandler(async (req, res) => {
   const { license_key } = req.body || {};
 
@@ -496,7 +513,8 @@ router.post('/regenerate', asyncHandler(async (req, res) => {
   }
 
   const oldResult = await db.execute({
-    sql: 'SELECT * FROM licenses WHERE license_key = ?',
+    sql:
+      'SELECT * FROM licenses WHERE license_key = ?',
     args: [license_key]
   });
 
@@ -511,13 +529,21 @@ router.post('/regenerate', asyncHandler(async (req, res) => {
   const newKey = generateKeyString();
 
   await db.execute({
-    sql: 'UPDATE licenses SET license_key = ? WHERE license_key = ?',
-    args: [newKey, license_key]
+    sql:
+      'UPDATE licenses SET license_key = ? WHERE license_key = ?',
+    args: [
+      newKey,
+      license_key
+    ]
   });
 
   await db.execute({
-    sql: 'UPDATE license_devices SET license_key = ? WHERE license_key = ?',
-    args: [newKey, license_key]
+    sql:
+      'UPDATE license_devices SET license_key = ? WHERE license_key = ?',
+    args: [
+      newKey,
+      license_key
+    ]
   });
 
   res.json({
@@ -527,9 +553,7 @@ router.post('/regenerate', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Revoke key
-// ------------------------------------------------------------
 router.post('/revoke', asyncHandler(async (req, res) => {
   const { license_key } = req.body || {};
 
@@ -540,11 +564,10 @@ router.post('/revoke', asyncHandler(async (req, res) => {
   }
 
   const result = await db.execute({
-    sql: `
-      UPDATE licenses
-      SET status = 'revoked'
-      WHERE license_key = ?
-    `,
+    sql:
+      `UPDATE licenses
+       SET status = 'revoked'
+       WHERE license_key = ?`,
     args: [license_key]
   });
 
@@ -560,9 +583,7 @@ router.post('/revoke', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Delete one key
-// ------------------------------------------------------------
 router.post('/delete-key', asyncHandler(async (req, res) => {
   const { license_key } = req.body || {};
 
@@ -573,12 +594,14 @@ router.post('/delete-key', asyncHandler(async (req, res) => {
   }
 
   await db.execute({
-    sql: 'DELETE FROM license_devices WHERE license_key = ?',
+    sql:
+      'DELETE FROM license_devices WHERE license_key = ?',
     args: [license_key]
   });
 
   const result = await db.execute({
-    sql: 'DELETE FROM licenses WHERE license_key = ?',
+    sql:
+      'DELETE FROM licenses WHERE license_key = ?',
     args: [license_key]
   });
 
@@ -594,9 +617,7 @@ router.post('/delete-key', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
-// Delete all revoked keys
-// ------------------------------------------------------------
+// Delete revoked keys
 router.post('/delete-revoked', asyncHandler(async (req, res) => {
   await db.execute(`
     DELETE FROM license_devices
@@ -620,13 +641,10 @@ router.post('/delete-revoked', asyncHandler(async (req, res) => {
 
 
 // ============================================================
-// RESELLER MANAGEMENT
+// RESELLERS
 // ============================================================
 
-
-// ------------------------------------------------------------
 // List resellers
-// ------------------------------------------------------------
 router.get('/resellers', asyncHandler(async (req, res) => {
   const resellersResult = await db.execute(`
     SELECT
@@ -682,8 +700,9 @@ router.get('/resellers', asyncHandler(async (req, res) => {
     const daysActive = Math.max(
       1,
       Math.ceil(
-        (Date.now() - new Date(r.created_at)) /
-        86400000
+        (Date.now() -
+          new Date(r.created_at)) /
+          86400000
       )
     );
 
@@ -703,9 +722,7 @@ router.get('/resellers', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Create reseller
-// ------------------------------------------------------------
 router.post('/resellers', asyncHandler(async (req, res) => {
   const {
     name,
@@ -723,7 +740,8 @@ router.post('/resellers', asyncHandler(async (req, res) => {
     Number(initial_credits) < 0
   ) {
     return res.status(400).json({
-      error: 'initial_credits must be zero or a positive number'
+      error:
+        'initial_credits must be zero or a positive number'
     });
   }
 
@@ -760,154 +778,154 @@ router.post('/resellers', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
 // Adjust reseller credits
-// ------------------------------------------------------------
-router.post('/resellers/:id/adjust-credits', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { delta } = req.body || {};
+router.post(
+  '/resellers/:id/adjust-credits',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { delta } = req.body || {};
 
-  if (
-    !Number.isFinite(Number(delta)) ||
-    Number(delta) === 0
-  ) {
-    return res.status(400).json({
-      error: 'delta must be a non-zero number'
+    if (
+      !Number.isFinite(Number(delta)) ||
+      Number(delta) === 0
+    ) {
+      return res.status(400).json({
+        error:
+          'delta must be a non-zero number'
+      });
+    }
+
+    const result = await db.execute({
+      sql:
+        'UPDATE resellers SET credits = credits + ? WHERE id = ?',
+      args: [
+        delta,
+        id
+      ]
     });
-  }
 
-  const result = await db.execute({
-    sql: `
-      UPDATE resellers
-      SET credits = credits + ?
-      WHERE id = ?
-    `,
-    args: [delta, id]
-  });
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        error: 'reseller not found'
+      });
+    }
 
-  if (result.rowsAffected === 0) {
-    return res.status(404).json({
-      error: 'reseller not found'
+    const updated = await db.execute({
+      sql:
+        'SELECT credits FROM resellers WHERE id = ?',
+      args: [id]
     });
-  }
 
-  const updated = await db.execute({
-    sql: 'SELECT credits FROM resellers WHERE id = ?',
-    args: [id]
-  });
-
-  res.json({
-    success: true,
-    credits: updated.rows[0]?.credits
-  });
-}));
+    res.json({
+      success: true,
+      credits: updated.rows[0]?.credits
+    });
+  })
+);
 
 
-// ------------------------------------------------------------
 // Suspend/reactivate reseller
-// ------------------------------------------------------------
-router.post('/resellers/:id/set-status', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body || {};
+router.post(
+  '/resellers/:id/set-status',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body || {};
 
-  if (
-    !['active', 'suspended'].includes(status)
-  ) {
-    return res.status(400).json({
-      error: "status must be 'active' or 'suspended'"
+    if (
+      !['active', 'suspended'].includes(status)
+    ) {
+      return res.status(400).json({
+        error:
+          "status must be 'active' or 'suspended'"
+      });
+    }
+
+    const result = await db.execute({
+      sql:
+        'UPDATE resellers SET status = ? WHERE id = ?',
+      args: [
+        status,
+        id
+      ]
     });
-  }
 
-  const result = await db.execute({
-    sql: `
-      UPDATE resellers
-      SET status = ?
-      WHERE id = ?
-    `,
-    args: [status, id]
-  });
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        error: 'reseller not found'
+      });
+    }
 
-  if (result.rowsAffected === 0) {
-    return res.status(404).json({
-      error: 'reseller not found'
+    res.json({
+      success: true
     });
-  }
-
-  res.json({
-    success: true
-  });
-}));
+  })
+);
 
 
-// ------------------------------------------------------------
 // Delete reseller
-// ------------------------------------------------------------
-router.delete('/resellers/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+router.delete(
+  '/resellers/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-  await db.execute({
-    sql: `
-      DELETE FROM credit_topups
-      WHERE reseller_id = ?
-    `,
-    args: [id]
-  });
-
-  const result = await db.execute({
-    sql: `
-      DELETE FROM resellers
-      WHERE id = ?
-    `,
-    args: [id]
-  });
-
-  if (result.rowsAffected === 0) {
-    return res.status(404).json({
-      error: 'reseller not found'
+    await db.execute({
+      sql:
+        'DELETE FROM credit_topups WHERE reseller_id = ?',
+      args: [id]
     });
-  }
 
-  res.json({
-    success: true
-  });
-}));
+    const result = await db.execute({
+      sql:
+        'DELETE FROM resellers WHERE id = ?',
+      args: [id]
+    });
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({
+        error: 'reseller not found'
+      });
+    }
+
+    res.json({
+      success: true
+    });
+  })
+);
 
 
-// ------------------------------------------------------------
 // Reseller sales
-// ------------------------------------------------------------
-router.get('/resellers/:id/sales', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+router.get(
+  '/resellers/:id/sales',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-  const result = await db.execute({
-    sql: `
-      SELECT *
-      FROM licenses
-      WHERE reseller_id = ?
-      ORDER BY created_at DESC
-    `,
-    args: [id]
-  });
+    const result = await db.execute({
+      sql: `
+        SELECT *
+        FROM licenses
+        WHERE reseller_id = ?
+        ORDER BY created_at DESC
+      `,
+      args: [id]
+    });
 
-  const withStatus = result.rows.map(r => ({
-    ...r,
-    computed_status: computeStatus(r)
-  }));
+    const withStatus = result.rows.map(r => ({
+      ...r,
+      computed_status: computeStatus(r)
+    }));
 
-  res.json({
-    licenses: withStatus
-  });
-}));
+    res.json({
+      licenses: withStatus
+    });
+  })
+);
 
 
 // ============================================================
-// CREDIT TOP-UP REQUESTS
+// CREDIT TOPUPS
 // ============================================================
 
-
-// ------------------------------------------------------------
-// List top-ups
-// ------------------------------------------------------------
+// List topups
 router.get('/topups', asyncHandler(async (req, res) => {
   const { status } = req.query;
 
@@ -917,7 +935,8 @@ router.get('/topups', asyncHandler(async (req, res) => {
         t.*,
         r.name AS reseller_name
       FROM credit_topups t
-      JOIN resellers r ON r.id = t.reseller_id
+      JOIN resellers r
+        ON r.id = t.reseller_id
       WHERE t.status = ?
       ORDER BY t.requested_at DESC
     `
@@ -926,7 +945,8 @@ router.get('/topups', asyncHandler(async (req, res) => {
         t.*,
         r.name AS reseller_name
       FROM credit_topups t
-      JOIN resellers r ON r.id = t.reseller_id
+      JOIN resellers r
+        ON r.id = t.reseller_id
       ORDER BY t.requested_at DESC
     `;
 
@@ -945,114 +965,109 @@ router.get('/topups', asyncHandler(async (req, res) => {
 }));
 
 
-// ------------------------------------------------------------
-// Approve top-up
-// ------------------------------------------------------------
-router.post('/topups/:id/approve', asyncHandler(async (req, res) => {
-  const { id } = req.params;
+// Approve topup
+router.post(
+  '/topups/:id/approve',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-  const topupResult = await db.execute({
-    sql: `
-      SELECT *
-      FROM credit_topups
-      WHERE id = ?
-    `,
-    args: [id]
-  });
-
-  const topup = topupResult.rows[0];
-
-  if (!topup) {
-    return res.status(404).json({
-      error: 'topup not found'
+    const topupResult = await db.execute({
+      sql:
+        'SELECT * FROM credit_topups WHERE id = ?',
+      args: [id]
     });
-  }
 
-  if (topup.status !== 'pending') {
-    return res.status(409).json({
-      error: `topup already ${topup.status}`
+    const topup = topupResult.rows[0];
+
+    if (!topup) {
+      return res.status(404).json({
+        error: 'topup not found'
+      });
+    }
+
+    if (topup.status !== 'pending') {
+      return res.status(409).json({
+        error:
+          `topup already ${topup.status}`
+      });
+    }
+
+    await db.execute({
+      sql:
+        'UPDATE resellers SET credits = credits + ? WHERE id = ?',
+      args: [
+        topup.amount,
+        topup.reseller_id
+      ]
     });
-  }
 
-  await db.execute({
-    sql: `
-      UPDATE resellers
-      SET credits = credits + ?
-      WHERE id = ?
-    `,
-    args: [
-      topup.amount,
-      topup.reseller_id
-    ]
-  });
-
-  await db.execute({
-    sql: `
-      UPDATE credit_topups
-      SET
-        status = 'approved',
-        resolved_at = ?
-      WHERE id = ?
-    `,
-    args: [
-      nowISO(),
-      id
-    ]
-  });
-
-  res.json({
-    success: true
-  });
-}));
-
-
-// ------------------------------------------------------------
-// Reject top-up
-// ------------------------------------------------------------
-router.post('/topups/:id/reject', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
-  const topupResult = await db.execute({
-    sql: `
-      SELECT *
-      FROM credit_topups
-      WHERE id = ?
-    `,
-    args: [id]
-  });
-
-  const topup = topupResult.rows[0];
-
-  if (!topup) {
-    return res.status(404).json({
-      error: 'topup not found'
+    await db.execute({
+      sql: `
+        UPDATE credit_topups
+        SET
+          status = 'approved',
+          resolved_at = ?
+        WHERE id = ?
+      `,
+      args: [
+        nowISO(),
+        id
+      ]
     });
-  }
 
-  if (topup.status !== 'pending') {
-    return res.status(409).json({
-      error: `topup already ${topup.status}`
+    res.json({
+      success: true
     });
-  }
+  })
+);
 
-  await db.execute({
-    sql: `
-      UPDATE credit_topups
-      SET
-        status = 'rejected',
-        resolved_at = ?
-      WHERE id = ?
-    `,
-    args: [
-      nowISO(),
-      id
-    ]
-  });
 
-  res.json({
-    success: true
-  });
-}));
+// Reject topup
+router.post(
+  '/topups/:id/reject',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const topupResult = await db.execute({
+      sql:
+        'SELECT * FROM credit_topups WHERE id = ?',
+      args: [id]
+    });
+
+    const topup = topupResult.rows[0];
+
+    if (!topup) {
+      return res.status(404).json({
+        error: 'topup not found'
+      });
+    }
+
+    if (topup.status !== 'pending') {
+      return res.status(409).json({
+        error:
+          `topup already ${topup.status}`
+      });
+    }
+
+    await db.execute({
+      sql: `
+        UPDATE credit_topups
+        SET
+          status = 'rejected',
+          resolved_at = ?
+        WHERE id = ?
+      `,
+      args: [
+        nowISO(),
+        id
+      ]
+    });
+
+    res.json({
+      success: true
+    });
+  })
+);
 
 
 module.exports = router;
