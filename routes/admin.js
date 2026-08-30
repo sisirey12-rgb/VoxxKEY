@@ -6,6 +6,7 @@ const { requireSession } = require('../middleware/authSession');
 const {
   generateKeyString,
   generateResellerToken,
+  addDaysISO,
   addDurationISO,
   nowISO,
   computeStatus,
@@ -16,18 +17,23 @@ const router = express.Router();
 
 /*
 ============================================================
-PUBLIC VISITOR ROUTES
+PRICEVOX VISITOR NOTIFICATIONS
 ============================================================
 
-These routes are intentionally BEFORE requireSession.
+PUBLIC ROUTES:
+  POST /admin/ping
+  POST /admin/gps
+
+These two routes MUST be before router.use(requireSession).
 
 Required Render environment variables:
 
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
 
-GPS is accepted only when the browser explicitly sends:
-consent: true
+GPS:
+The browser must explicitly request/grant location permission
+and send consent: true before coordinates are accepted.
 */
 
 
@@ -51,7 +57,7 @@ function getVisitorIp(req) {
 
 
 // ============================================================
-// GEOIP
+// GEOIP LOOKUP
 // ============================================================
 
 async function getGeoIP(ip) {
@@ -59,14 +65,13 @@ async function getGeoIP(ip) {
     return null;
   }
 
-  const cleanIp = ip.replace(/^::ffff:/, '');
-
+  // Local/private addresses cannot be GeoIP located.
   const isPrivate =
-    cleanIp === '::1' ||
-    cleanIp === '127.0.0.1' ||
-    cleanIp.startsWith('10.') ||
-    cleanIp.startsWith('192.168.') ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(cleanIp);
+    ip === '::1' ||
+    ip === '127.0.0.1' ||
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip);
 
   if (isPrivate) {
     return null;
@@ -74,7 +79,7 @@ async function getGeoIP(ip) {
 
   try {
     const response = await axios.get(
-      `https://ipwho.is/${encodeURIComponent(cleanIp)}`,
+      `https://ipwho.is/${encodeURIComponent(ip)}`,
       {
         timeout: 5000
       }
@@ -87,15 +92,10 @@ async function getGeoIP(ip) {
     }
 
     return {
-      ip: cleanIp,
       country: data.country || null,
-      countryCode: data.country_code || null,
       region: data.region || null,
       city: data.city || null,
-      latitude: data.latitude ?? null,
-      longitude: data.longitude ?? null,
-      isp: data.connection?.isp || null,
-      org: data.connection?.org || null
+      isp: data.connection?.isp || null
     };
   } catch (error) {
     console.error(
@@ -109,7 +109,7 @@ async function getGeoIP(ip) {
 
 
 // ============================================================
-// TELEGRAM
+// SEND TELEGRAM MESSAGE
 // ============================================================
 
 async function sendTelegram(message) {
@@ -121,8 +121,9 @@ async function sendTelegram(message) {
 
   if (!botToken || !chatId) {
     console.error(
-      'Telegram not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in Render.'
+      'Telegram notification skipped: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing.'
     );
+
     return false;
   }
 
@@ -156,8 +157,14 @@ async function sendTelegram(message) {
 
 
 // ============================================================
-// PRICEVOX VISITOR PING
+// PRICEVOX PING
+//
 // POST /admin/ping
+//
+// Public route.
+// No admin session required.
+//
+// Use this when somebody opens PriceVox.
 // ============================================================
 
 router.post(
@@ -174,7 +181,7 @@ router.post(
       req.get('referer') || 'Direct';
 
     const page =
-      req.body?.page || 'PriceVox';
+      req.body?.page || 'Unknown';
 
     const location = geo
       ? [
@@ -192,24 +199,21 @@ router.post(
       `🌐 Public IP: ${ip}`,
       `📍 GeoIP: ${location}`,
       `🏢 ISP: ${geo?.isp || 'Unavailable'}`,
-      `🏢 Organization: ${geo?.org || 'Unavailable'}`,
       `📄 Page: ${page}`,
       `🔗 Referrer: ${referrer}`,
       `🖥️ User-Agent: ${userAgent}`,
       `🕐 Time: ${new Date().toISOString()}`
     ].join('\n');
 
-    /*
-     * Respond first so the website doesn't have to wait
-     * for Telegram/GeoIP processing.
-     */
+    // Respond to PriceVox immediately.
     res.json({
       success: true
     });
 
+    // Send Telegram after responding.
     sendTelegram(message).catch(error => {
       console.error(
-        'Visitor Telegram notification error:',
+        'PriceVox Telegram error:',
         error.message
       );
     });
@@ -218,8 +222,15 @@ router.post(
 
 
 // ============================================================
-// GPS
+// PRICEVOX GPS
+//
 // POST /admin/gps
+//
+// Public route.
+// No admin session required.
+//
+// IMPORTANT:
+// Coordinates are accepted only when consent === true.
 // ============================================================
 
 router.post(
@@ -232,9 +243,7 @@ router.post(
       consent
     } = req.body || {};
 
-    /*
-     * GPS is accepted only after explicit consent.
-     */
+    // Explicit browser/user consent is required.
     if (consent !== true) {
       return res.status(400).json({
         error: 'explicit GPS consent required'
@@ -268,7 +277,7 @@ router.post(
     const ip = getVisitorIp(req);
 
     const message = [
-      '📍 VOXX GPS Permission Granted',
+      '📍 VOXX PriceVox GPS Permission Granted',
       '',
       `📌 Latitude: ${lat}`,
       `📌 Longitude: ${lng}`,
@@ -281,13 +290,15 @@ router.post(
       `🕐 Time: ${new Date().toISOString()}`
     ].join('\n');
 
+    // Respond immediately.
     res.json({
       success: true
     });
 
+    // Telegram notification.
     sendTelegram(message).catch(error => {
       console.error(
-        'GPS Telegram notification error:',
+        'GPS Telegram error:',
         error.message
       );
     });
@@ -295,10 +306,11 @@ router.post(
 );
 
 
-// ============================================================
-// ADMIN SESSION
-// Everything below this point requires a valid session.
-// ============================================================
+/*
+============================================================
+EVERYTHING BELOW REQUIRES ADMIN SESSION
+============================================================
+*/
 
 router.use(requireSession);
 
@@ -306,7 +318,6 @@ router.use(requireSession);
 // ============================================================
 // LICENSE KEYS
 // ============================================================
-
 
 // List all keys
 router.get(
@@ -323,9 +334,9 @@ router.get(
       ORDER BY l.created_at DESC
     `);
 
-    const withStatus = result.rows.map(row => ({
-      ...row,
-      computed_status: computeStatus(row)
+    const withStatus = result.rows.map(r => ({
+      ...r,
+      computed_status: computeStatus(r)
     }));
 
     res.json({
@@ -335,7 +346,10 @@ router.get(
 );
 
 
-// Generate key
+// ============================================================
+// GENERATE KEY
+// ============================================================
+
 router.post(
   '/generate-key',
   asyncHandler(async (req, res) => {
@@ -351,7 +365,8 @@ router.post(
     } = req.body || {};
 
     const customKey =
-      (custom_key || legacyKey || '').trim() || null;
+      (custom_key || legacyKey || '').trim() ||
+      null;
 
     const totalDays =
       Number(validity_days ?? days) || 0;
@@ -429,8 +444,7 @@ router.post(
           max_devices,
           status
         )
-        VALUES
-        (?, NULL, ?, ?, ?, ?, 'active')
+        VALUES (?, NULL, ?, ?, ?, ?, 'active')
       `,
       args: [
         license_key,
@@ -453,18 +467,19 @@ router.post(
 );
 
 
-// Reset HWID
+// ============================================================
+// RESET HWID
+// ============================================================
+
 router.post(
   '/reset-hwid',
   asyncHandler(async (req, res) => {
-    const {
-      license_key
-    } = req.body || {};
+    const { license_key } =
+      req.body || {};
 
     if (!license_key) {
       return res.status(400).json({
-        error:
-          'license_key required'
+        error: 'license_key required'
       });
     }
 
@@ -478,8 +493,7 @@ router.post(
 
     if (!lic) {
       return res.status(404).json({
-        error:
-          'license_key not found'
+        error: 'license_key not found'
       });
     }
 
@@ -502,7 +516,10 @@ router.post(
 );
 
 
-// Extend expiry
+// ============================================================
+// EXTEND
+// ============================================================
+
 router.post(
   '/extend',
   asyncHandler(async (req, res) => {
@@ -529,8 +546,7 @@ router.post(
 
     if (!license_key) {
       return res.status(400).json({
-        error:
-          'license_key required'
+        error: 'license_key required'
       });
     }
 
@@ -554,8 +570,7 @@ router.post(
 
     if (!lic) {
       return res.status(404).json({
-        error:
-          'license_key not found'
+        error: 'license_key not found'
       });
     }
 
@@ -586,18 +601,19 @@ router.post(
 );
 
 
-// Regenerate key
+// ============================================================
+// REGENERATE
+// ============================================================
+
 router.post(
   '/regenerate',
   asyncHandler(async (req, res) => {
-    const {
-      license_key
-    } = req.body || {};
+    const { license_key } =
+      req.body || {};
 
     if (!license_key) {
       return res.status(400).json({
-        error:
-          'license_key required'
+        error: 'license_key required'
       });
     }
 
@@ -612,8 +628,7 @@ router.post(
 
     if (!old) {
       return res.status(404).json({
-        error:
-          'license_key not found'
+        error: 'license_key not found'
       });
     }
 
@@ -640,41 +655,39 @@ router.post(
 
     res.json({
       success: true,
-      new_license_key:
-        newKey
+      new_license_key: newKey
     });
   })
 );
 
 
-// Revoke key
+// ============================================================
+// REVOKE
+// ============================================================
+
 router.post(
   '/revoke',
   asyncHandler(async (req, res) => {
-    const {
-      license_key
-    } = req.body || {};
+    const { license_key } =
+      req.body || {};
 
     if (!license_key) {
       return res.status(400).json({
-        error:
-          'license_key required'
+        error: 'license_key required'
       });
     }
 
     const result = await db.execute({
-      sql: `
-        UPDATE licenses
-        SET status = 'revoked'
-        WHERE license_key = ?
-      `,
+      sql:
+        `UPDATE licenses
+         SET status = 'revoked'
+         WHERE license_key = ?`,
       args: [license_key]
     });
 
     if (result.rowsAffected === 0) {
       return res.status(404).json({
-        error:
-          'license_key not found'
+        error: 'license_key not found'
       });
     }
 
@@ -685,18 +698,19 @@ router.post(
 );
 
 
-// Delete one key
+// ============================================================
+// DELETE KEY
+// ============================================================
+
 router.post(
   '/delete-key',
   asyncHandler(async (req, res) => {
-    const {
-      license_key
-    } = req.body || {};
+    const { license_key } =
+      req.body || {};
 
     if (!license_key) {
       return res.status(400).json({
-        error:
-          'license_key required'
+        error: 'license_key required'
       });
     }
 
@@ -714,8 +728,7 @@ router.post(
 
     if (result.rowsAffected === 0) {
       return res.status(404).json({
-        error:
-          'license_key not found'
+        error: 'license_key not found'
       });
     }
 
@@ -726,7 +739,10 @@ router.post(
 );
 
 
-// Delete revoked keys
+// ============================================================
+// DELETE REVOKED
+// ============================================================
+
 router.post(
   '/delete-revoked',
   asyncHandler(async (req, res) => {
@@ -739,15 +755,15 @@ router.post(
       )
     `);
 
-    const result = await db.execute(`
-      DELETE FROM licenses
-      WHERE status = 'revoked'
-    `);
+    const result =
+      await db.execute(`
+        DELETE FROM licenses
+        WHERE status = 'revoked'
+      `);
 
     res.json({
       success: true,
-      deleted:
-        result.rowsAffected
+      deleted: result.rowsAffected
     });
   })
 );
@@ -756,7 +772,6 @@ router.post(
 // ============================================================
 // RESELLERS
 // ============================================================
-
 
 // List resellers
 router.get(
@@ -786,9 +801,8 @@ router.get(
 
     const counts = {};
 
-    for (const license of licensesResult.rows) {
-      const rid =
-        license.reseller_id;
+    for (const l of licensesResult.rows) {
+      const rid = l.reseller_id;
 
       if (!counts[rid]) {
         counts[rid] = {
@@ -799,21 +813,21 @@ router.get(
 
       counts[rid].total += 1;
 
-      const status =
-        computeStatus(license);
+      const st =
+        computeStatus(l);
 
       if (
-        status === 'active' ||
-        status === 'expiring'
+        st === 'active' ||
+        st === 'expiring'
       ) {
         counts[rid].active += 1;
       }
     }
 
     const resellers =
-      resellersResult.rows.map(reseller => {
-        const count =
-          counts[reseller.id] || {
+      resellersResult.rows.map(r => {
+        const c =
+          counts[r.id] || {
             total: 0,
             active: 0
           };
@@ -822,25 +836,20 @@ router.get(
           Math.max(
             1,
             Math.ceil(
-              (
-                Date.now() -
-                new Date(
-                  reseller.created_at
-                )
-              ) / 86400000
+              (Date.now() -
+                new Date(r.created_at)) /
+                86400000
             )
           );
 
         return {
-          ...reseller,
-          total_sales:
-            count.total,
-          active_sales:
-            count.active,
+          ...r,
+          total_sales: c.total,
+          active_sales: c.active,
           sales_per_day:
             Number(
               (
-                count.total /
+                c.total /
                 daysActive
               ).toFixed(2)
             )
@@ -863,13 +872,9 @@ router.post(
       initial_credits = 0
     } = req.body || {};
 
-    if (
-      !name ||
-      !name.trim()
-    ) {
+    if (!name || !name.trim()) {
       return res.status(400).json({
-        error:
-          'name required'
+        error: 'name required'
       });
     }
 
@@ -902,8 +907,7 @@ router.post(
             created_at,
             status
           )
-          VALUES
-          (?, ?, ?, ?, 'active')
+          VALUES (?, ?, ?, ?, 'active')
         `,
         args: [
           name.trim(),
@@ -918,13 +922,10 @@ router.post(
         Number(
           result.lastInsertRowid
         ),
-      name:
-        name.trim(),
+      name: name.trim(),
       token,
-      credits:
-        initial_credits,
-      status:
-        'active'
+      credits: initial_credits,
+      status: 'active'
     });
   })
 );
@@ -962,9 +963,7 @@ router.post(
         ]
       });
 
-    if (
-      result.rowsAffected === 0
-    ) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         error:
           'reseller not found'
@@ -998,8 +997,10 @@ router.post(
       req.body || {};
 
     if (
-      !['active', 'suspended']
-        .includes(status)
+      ![
+        'active',
+        'suspended'
+      ].includes(status)
     ) {
       return res.status(400).json({
         error:
@@ -1017,9 +1018,7 @@ router.post(
         ]
       });
 
-    if (
-      result.rowsAffected === 0
-    ) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         error:
           'reseller not found'
@@ -1053,9 +1052,7 @@ router.delete(
         args: [id]
       });
 
-    if (
-      result.rowsAffected === 0
-    ) {
+    if (result.rowsAffected === 0) {
       return res.status(404).json({
         error:
           'reseller not found'
@@ -1088,15 +1085,14 @@ router.get(
       });
 
     const withStatus =
-      result.rows.map(row => ({
-        ...row,
+      result.rows.map(r => ({
+        ...r,
         computed_status:
-          computeStatus(row)
+          computeStatus(r)
       }));
 
     res.json({
-      licenses:
-        withStatus
+      licenses: withStatus
     });
   })
 );
@@ -1105,7 +1101,6 @@ router.get(
 // ============================================================
 // CREDIT TOPUPS
 // ============================================================
-
 
 // List topups
 router.get(
@@ -1146,8 +1141,7 @@ router.get(
       );
 
     res.json({
-      topups:
-        result.rows
+      topups: result.rows
     });
   })
 );
@@ -1178,7 +1172,8 @@ router.post(
     }
 
     if (
-      topup.status !== 'pending'
+      topup.status !==
+      'pending'
     ) {
       return res.status(409).json({
         error:
@@ -1241,7 +1236,8 @@ router.post(
     }
 
     if (
-      topup.status !== 'pending'
+      topup.status !==
+      'pending'
     ) {
       return res.status(409).json({
         error:
