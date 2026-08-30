@@ -17,6 +17,7 @@ const allowedOrigins = [
   'https://yorvoxxvip.netlify.app',
   'https://yorvoxxvipwebscan.netlify.app',
   'https://voxxresellerdashboard.netlify.app',
+  'https://voxxpricelist.netlify.app',
 ];
 
 app.use(cors({
